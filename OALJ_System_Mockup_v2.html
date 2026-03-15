@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OALJ Case Management System — TO-BE Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0F1923;
+  --surface:#16232F;
+  --surface2:#1C2E3D;
+  --surface3:#223445;
+  --border:#2A3F52;
+  --border2:#344F66;
+  --accent:#00B4D8;
+  --accent2:#0096B4;
+  --gold:#F4A820;
+  --green:#00C896;
+  --red:#FF5A5A;
+  --amber:#FFB347;
+  --purple:#8B78F0;
+  --text:#E8F0F7;
+  --text2:#9AAFBE;
+  --text3:#627A8C;
+  --navy:#0A1520;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── SHELL ── */
+.shell{display:flex;height:100vh;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;flex-shrink:0;background:var(--navy);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+.sidebar-logo .agency{font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+.sidebar-logo .system{font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--text);line-height:1.2;}
+.sidebar-logo .version{font-size:10px;color:var(--text3);margin-top:3px;font-family:'IBM Plex Mono',monospace;}
+
+.nav-section{padding:16px 0 8px;}
+.nav-label{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);padding:0 18px;margin-bottom:6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 18px;font-size:12.5px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative;}
+.nav-item:hover{color:var(--text);background:rgba(0,180,216,.07);}
+.nav-item.active{color:var(--accent);background:rgba(0,180,216,.1);border-left-color:var(--accent);}
+.nav-item .icon{width:16px;text-align:center;font-size:14px;flex-shrink:0;}
+.nav-badge{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:auto;}
+.nav-badge.amber{background:var(--amber);color:#000;}
+.nav-badge.green{background:var(--green);color:#000;}
+
+.sidebar-user{margin-top:auto;padding:14px 18px;border-top:1px solid var(--border);}
+.sidebar-user .name{font-size:12px;font-weight:600;color:var(--text);}
+.sidebar-user .role{font-size:10px;color:var(--text3);margin-top:2px;}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+
+/* ── MAIN AREA ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOPBAR ── */
+.topbar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;background:var(--surface);flex-shrink:0;}
+.topbar-title{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--text);}
+.topbar-sub{font-size:11px;color:var(--text3);margin-left:4px;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.topbar-search{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:12px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;width:220px;}
+.topbar-search::placeholder{color:var(--text3);}
+.topbar-search:focus{outline:none;border-color:var(--accent);}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:24px;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ── STAT CARDS ── */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-card.accent::before{background:var(--accent);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.amber::before{background:var(--amber);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.purple::before{background:var(--purple);}
+.stat-val{font-family:'Fraunces',serif;font-size:28px;font-weight:700;color:var(--text);line-height:1;}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:4px;font-weight:500;}
+.stat-delta{font-size:10px;font-family:'IBM Plex Mono',monospace;margin-top:6px;}
+.stat-delta.up{color:var(--green);}
+.stat-delta.down{color:var(--red);}
+.stat-delta.neutral{color:var(--text3);}
+
+/* ── SECTION HEADER ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:.3px;}
+.sec-actions{display:flex;gap:8px;}
+
+/* ── TABLE ── */
+.data-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.data-table th{background:var(--surface2);color:var(--text3);font-weight:600;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
+.data-table tr:hover td{background:rgba(0,180,216,.04);cursor:pointer;}
+.data-table .case-id{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--accent);font-weight:500;}
+.data-table .case-name{color:var(--text);font-weight:500;}
+.data-table .case-sub{font-size:10.5px;color:var(--text3);margin-top:2px;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:10.5px;font-weight:600;}
+.badge-green{background:rgba(0,200,150,.15);color:var(--green);border:1px solid rgba(0,200,150,.3);}
+.badge-amber{background:rgba(255,179,71,.15);color:var(--amber);border:1px solid rgba(255,179,71,.3);}
+.badge-red{background:rgba(255,90,90,.15);color:var(--red);border:1px solid rgba(255,90,90,.3);}
+.badge-blue{background:rgba(0,180,216,.15);color:var(--accent);border:1px solid rgba(0,180,216,.3);}
+.badge-purple{background:rgba(139,120,240,.15);color:var(--purple);border:1px solid rgba(139,120,240,.3);}
+.badge-gray{background:rgba(154,175,190,.1);color:var(--text3);border:1px solid var(--border);}
+
+/* ── PHASE PIPELINE ── */
+.pipeline{display:flex;align-items:center;gap:0;margin-bottom:24px;}
+.pipe-step{flex:1;text-align:center;padding:10px 6px;font-size:10.5px;font-weight:600;color:var(--text3);background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);border-right:1px solid var(--border);position:relative;cursor:pointer;transition:all .15s;}
+.pipe-step:first-child{border-left:1px solid var(--border);border-radius:8px 0 0 8px;}
+.pipe-step:last-child{border-radius:0 8px 8px 0;}
+.pipe-step.done{background:rgba(0,200,150,.1);color:var(--green);border-color:rgba(0,200,150,.3);}
+.pipe-step.active{background:rgba(0,180,216,.15);color:var(--accent);border-color:rgba(0,180,216,.4);}
+.pipe-step.pending{background:var(--surface2);color:var(--text3);}
+.pipe-step .pipe-num{font-family:'IBM Plex Mono',monospace;font-size:9px;display:block;margin-bottom:2px;opacity:.7;}
+.pipe-count{font-family:'Fraunces',serif;font-size:18px;display:block;margin-top:2px;}
+
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.card-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+
+/* ── CASE DETAIL ── */
+.case-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.meta-item{background:var(--surface2);border-radius:8px;padding:12px 14px;}
+.meta-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+.meta-value{font-size:13px;color:var(--text);font-weight:500;}
+.meta-value.mono{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent);}
+
+/* ── TIMELINE ── */
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:14px;padding-bottom:16px;position:relative;}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:15px;top:30px;bottom:0;width:2px;background:var(--border);}
+.tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;border:2px solid var(--border);}
+.tl-dot.done{background:rgba(0,200,150,.15);border-color:var(--green);}
+.tl-dot.active{background:rgba(0,180,216,.15);border-color:var(--accent);}
+.tl-dot.pending{background:var(--surface2);border-color:var(--border);}
+.tl-content{flex:1;padding-top:4px;}
+.tl-title{font-size:13px;font-weight:600;color:var(--text);}
+.tl-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.tl-date{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:3px;}
+
+/* ── ALERT BAR ── */
+.alert-bar{background:rgba(255,179,71,.1);border:1px solid rgba(255,179,71,.3);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--amber);margin-bottom:16px;}
+
+/* ── CHARTS (CSS only) ── */
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:80px;padding:0 4px;}
+.bar{flex:1;background:var(--accent);border-radius:4px 4px 0 0;opacity:.7;transition:opacity .2s;cursor:pointer;position:relative;}
+.bar:hover{opacity:1;}
+.bar .bar-val{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2);white-space:nowrap;}
+.bar-labels{display:flex;gap:8px;padding:4px 4px 0;}
+.bar-label{flex:1;font-size:9px;color:var(--text3);text-align:center;}
+
+/* ── DONUT (CSS only) ── */
+.donut-wrap{display:flex;align-items:center;gap:16px;}
+.donut{width:70px;height:70px;border-radius:50%;background:conic-gradient(var(--green) 0% 62%,var(--amber) 62% 80%,var(--red) 80% 91%,var(--border2) 91% 100%);position:relative;flex-shrink:0;}
+.donut-hole{position:absolute;inset:12px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;font-weight:700;color:var(--text);}
+.donut-legend{display:flex;flex-direction:column;gap:5px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ── PROGRESS BAR ── */
+.prog-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-top:4px;}
+.prog-fill{height:100%;border-radius:3px;transition:width .4s;}
+
+/* ── INPUT / FORM ── */
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:block;}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12.5px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;}
+.form-input:focus{outline:none;border-color:var(--accent);}
+.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12.5px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;appearance:none;}
+.form-select:focus{outline:none;border-color:var(--accent);}
+
+/* ── WORKLOAD GAUGE ── */
+.judge-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.judge-row:last-child{border-bottom:none;}
+.judge-name{font-size:12px;font-weight:500;color:var(--text);width:130px;flex-shrink:0;}
+.judge-bar-wrap{flex:1;}
+.judge-count{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text3);width:30px;text-align:right;flex-shrink:0;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:18px;}
+.tab{padding:10px 16px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── NOTIFICATION DOT ── */
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--red);position:absolute;top:6px;right:12px;}
+
+/* ── APPEAL TRACKER ── */
+.appeal-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;}
+.appeal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.appeal-id{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);}
+.appeal-status-track{display:flex;gap:4px;margin-top:8px;}
+.track-step{flex:1;height:4px;border-radius:2px;background:var(--border);}
+.track-step.done{background:var(--green);}
+.track-step.active{background:var(--accent);}
+
+/* ── SLA INDICATOR ── */
+.sla-ring{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.sla-ok{background:rgba(0,200,150,.15);color:var(--green);border:2px solid var(--green);}
+.sla-warn{background:rgba(255,179,71,.15);color:var(--amber);border:2px solid var(--amber);}
+.sla-over{background:rgba(255,90,90,.15);color:var(--red);border:2px solid var(--red);}
+
+/* ── MODAL OVERLAY ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,12,20,.82);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:660px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6);animation:modalIn .2s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(16px) scale(.97);}to{opacity:1;transform:none;}}
+.modal-header{padding:22px 26px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;}
+.modal-header-left .modal-eyebrow{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+.modal-header-left .modal-title{font-family:'Fraunces',serif;font-size:1.25rem;font-weight:700;color:var(--text);}
+.modal-header-left .modal-sub{font-size:11.5px;color:var(--text3);margin-top:3px;}
+.modal-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:2px 6px;border-radius:4px;line-height:1;}
+.modal-close:hover{color:var(--text);background:var(--surface2);}
+.modal-body{padding:22px 26px;overflow-y:auto;flex:1;}
+.modal-footer{padding:16px 26px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;}
+
+/* FORM ENHANCEMENTS */
+.form-row{display:grid;gap:14px;margin-bottom:14px;}
+.form-row.cols-2{grid-template-columns:1fr 1fr;}
+.form-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.form-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--accent);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.form-section-title:first-child{margin-top:0;}
+.form-hint{font-size:10.5px;color:var(--text3);margin-top:3px;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,180,216,.12);}
+.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12.5px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;resize:vertical;min-height:72px;}
+.form-radio-group{display:flex;gap:10px;flex-wrap:wrap;}
+.form-radio{display:flex;align-items:center;gap:7px;padding:8px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12.5px;color:var(--text2);transition:all .15s;font-weight:500;}
+.form-radio:hover{border-color:var(--accent);color:var(--text);}
+.form-radio.selected{border-color:var(--accent);background:rgba(0,180,216,.1);color:var(--accent);}
+.form-radio input[type=radio]{accent-color:var(--accent);}
+.required-star{color:var(--red);margin-left:2px;}
+.form-divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+.auto-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--green);background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.3);padding:2px 7px;border-radius:10px;margin-left:6px;}
+.field-with-auto{display:flex;align-items:center;gap:8px;}
+.field-with-auto .form-input{flex:1;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.screen.active{animation:fadeIn .2s ease;}
+
+/* ── BREADCRUMB ── */
+.breadcrumb{font-size:11px;color:var(--text3);margin-bottom:16px;}
+.breadcrumb span{color:var(--text2);}
+.breadcrumb .sep{margin:0 6px;color:var(--border2);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="agency">DOL · OALJ</div>
+    <div class="system">Case Management<br>Platform</div>
+    <div class="version">v2.0 · TO-BE PROTOTYPE</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" onclick="showScreen('dashboard',this)">
+      <span class="icon">⬛</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showScreen('cases',this)">
+      <span class="icon">📋</span> All Cases
+      <span class="nav-badge amber">4</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Lifecycle</div>
+    <div class="nav-item" onclick="showScreen('intake',this)">
+      <span class="icon">📥</span> Intake & Docketing
+    </div>
+    <div class="nav-item" onclick="showScreen('assignment',this)">
+      <span class="icon">⚖️</span> Assignment
+    </div>
+    <div class="nav-item" onclick="showScreen('prehearing',this)">
+      <span class="icon">📅</span> Pre-Hearing
+      <span class="nav-badge">2</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('hearing',this)">
+      <span class="icon">🎤</span> Hearings
+    </div>
+    <div class="nav-item" onclick="showScreen('decision',this)">
+      <span class="icon">✍️</span> Decisions
+      <span class="nav-badge amber">3</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('postdecision',this)">
+      <span class="icon">🔁</span> Post-Decision
+      <span class="nav-badge">5</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Case Detail</div>
+    <div class="nav-item" onclick="showScreen('casedetail',this)">
+      <span class="icon">🔍</span> LCA-2024-00847
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Administration</div>
+    <div class="nav-item" onclick="showScreen('analytics',this)">
+      <span class="icon">📊</span> Analytics
+    </div>
+    <div class="nav-item" onclick="showScreen('workload',this)">
+      <span class="icon">👥</span> Workload
+    </div>
+  </div>
+
+  <div class="sidebar-user">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="avatar">SJ</div>
+      <div>
+        <div class="name">Sarah Johnson</div>
+        <div class="role">Chief ALJ · National Office</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <span class="topbar-sub" id="topbar-sub">· OALJ Case Management Platform</span>
+    </div>
+    <div class="topbar-right">
+      <input class="topbar-search" placeholder="🔍  Search cases, parties, judges..." />
+      <button class="btn btn-ghost btn-sm">🔔</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-newfiling')">+ New Filing</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ SCREEN: DASHBOARD ══ -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Dashboard</span></div>
+
+      <div class="stat-row">
+        <div class="stat-card accent">
+          <div class="stat-val">1,847</div>
+          <div class="stat-lbl">Active Cases</div>
+          <div class="stat-delta up">↑ 3.2% vs last month</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-val">94</div>
+          <div class="stat-lbl">Decisions This Month</div>
+          <div class="stat-delta up">↑ 12% vs target</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-val">23</div>
+          <div class="stat-lbl">SLA Warnings</div>
+          <div class="stat-delta down">↑ 4 since last week</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-val">7</div>
+          <div class="stat-lbl">Overdue Actions</div>
+          <div class="stat-delta neutral">Requires attention</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-val">142</div>
+          <div class="stat-lbl">Hearings Scheduled</div>
+          <div class="stat-delta neutral">Next 30 days</div>
+        </div>
+      </div>
+
+      <!-- Pipeline overview -->
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-title">Cases by Lifecycle Phase</div>
+        <div class="pipeline">
+          <div class="pipe-step done" onclick="showScreen('intake',null)">
+            <span class="pipe-num">PHASE 1</span>Intake
+            <span class="pipe-count">38</span>
+          </div>
+          <div class="pipe-step done" onclick="showScreen('assignment',null)">
+            <span class="pipe-num">PHASE 2</span>Assignment
+            <span class="pipe-count">214</span>
+          </div>
+          <div class="pipe-step active" onclick="showScreen('prehearing',null)">
+            <span class="pipe-num">PHASE 3</span>Pre-Hearing
+            <span class="pipe-count">487</span>
+          </div>
+          <div class="pipe-step active" onclick="showScreen('hearing',null)">
+            <span class="pipe-num">PHASE 4</span>Hearing
+            <span class="pipe-count">163</span>
+          </div>
+          <div class="pipe-step active" onclick="showScreen('decision',null)">
+            <span class="pipe-num">PHASE 5</span>Decision
+            <span class="pipe-count">298</span>
+          </div>
+          <div class="pipe-step pending" onclick="showScreen('postdecision',null)">
+            <span class="pipe-num">PHASE 6</span>Post-Decision
+            <span class="pipe-count">647</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-title">Recent System Activity</div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-dot done">✓</div>
+              <div class="tl-content">
+                <div class="tl-title">Decision Issued — LCA-2024-00831</div>
+                <div class="tl-sub">Auto-published to OALJ.DOL.GOV · All parties notified</div>
+                <div class="tl-date">Today, 10:42 AM · ALJ Martinez</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done">✓</div>
+              <div class="tl-content">
+                <div class="tl-title">New Filing Auto-Docketed — BLA-2024-01204</div>
+                <div class="tl-sub">Black Lung · Assigned to Pittsburgh District Office</div>
+                <div class="tl-date">Today, 09:17 AM · Auto-system</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot active">⚡</div>
+              <div class="tl-content">
+                <div class="tl-title">SLA Alert — Decision Overdue · DBA-2024-00612</div>
+                <div class="tl-sub">Record closed 47 days ago · Target: 45 days</div>
+                <div class="tl-date">Today, 08:30 AM · Auto-alert</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done">✓</div>
+              <div class="tl-content">
+                <div class="tl-title">Appeal Record Transmitted — ARB-LCA-831</div>
+                <div class="tl-sub">Digital transfer to ARB · No shipping required</div>
+                <div class="tl-date">Yesterday, 4:51 PM · Auto-system</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done">✓</div>
+              <div class="tl-content">
+                <div class="tl-title">Settlement Reached — WB-2024-00743</div>
+                <div class="tl-sub">Agreement uploaded · Presiding judge auto-notified</div>
+                <div class="tl-date">Yesterday, 2:15 PM · Settlement Judge Chen</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <!-- Case type distribution -->
+          <div class="card">
+            <div class="card-title">Active Cases by Program</div>
+            <div class="donut-wrap">
+              <div class="donut"><div class="donut-hole">1,847</div></div>
+              <div class="donut-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Longshore / DBA <strong style="margin-left:auto;color:var(--text)">726</strong></div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Black Lung <strong style="margin-left:auto;color:var(--text)">332</strong></div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>PERM / Immigration <strong style="margin-left:auto;color:var(--text)">201</strong></div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--border2)"></div>Whistleblower / Other <strong style="margin-left:auto;color:var(--text)">588</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLA Scorecard -->
+          <div class="card">
+            <div class="card-title">SLA Compliance — This Month</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2)">Decisions on time</span><span style="color:var(--green);font-weight:600;">87%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:87%;background:var(--green);"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2)">Hearing notices sent ≥21 days</span><span style="color:var(--green);font-weight:600;">98%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:98%;background:var(--green);"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2)">Transcripts received ≤30 days</span><span style="color:var(--amber);font-weight:600;">74%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:74%;background:var(--amber);"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2)">Auto-docketing accuracy</span><span style="color:var(--green);font-weight:600;">99.4%</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:99%;background:var(--green);"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: ALL CASES ══ -->
+    <div class="screen" id="screen-cases">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>All Cases</span></div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <select class="form-select" style="width:160px;">
+          <option>All Programs</option>
+          <option>Longshore / DBA</option>
+          <option>Black Lung</option>
+          <option>PERM / Immigration</option>
+          <option>Whistleblower</option>
+        </select>
+        <select class="form-select" style="width:160px;">
+          <option>All Phases</option>
+          <option>Intake</option>
+          <option>Pre-Hearing</option>
+          <option>Hearing</option>
+          <option>Decision</option>
+          <option>Post-Decision</option>
+        </select>
+        <select class="form-select" style="width:160px;">
+          <option>All Offices</option>
+          <option>National Office</option>
+          <option>New York</option>
+          <option>Pittsburgh</option>
+          <option>Washington DC</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto;">⬇ Export</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Case ID</th>
+              <th>Claimant / Respondent</th>
+              <th>Program</th>
+              <th>Phase</th>
+              <th>ALJ Assigned</th>
+              <th>Filed</th>
+              <th>SLA</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="showScreen('casedetail',null)">
+              <td><span class="case-id">LCA-2024-00847</span></td>
+              <td><div class="case-name">Patel v. Harbor Freight Inc.</div><div class="case-sub">Longshore · New York DO</div></td>
+              <td><span class="badge badge-blue">Longshore</span></td>
+              <td><span class="badge badge-amber">Pre-Hearing</span></td>
+              <td>ALJ Thompson</td>
+              <td>Mar 14, 2024</td>
+              <td><div class="sla-ring sla-ok" style="width:36px;height:36px;font-size:9px;">OK</div></td>
+              <td><span class="badge badge-green">● On Track</span></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">BLA-2024-01204</span></td>
+              <td><div class="case-name">Estate of R. Kowalski</div><div class="case-sub">Black Lung · Pittsburgh DO</div></td>
+              <td><span class="badge badge-gray">Black Lung</span></td>
+              <td><span class="badge badge-blue">Intake</span></td>
+              <td>Unassigned</td>
+              <td>Today</td>
+              <td><div class="sla-ring sla-ok" style="width:36px;height:36px;font-size:9px;">NEW</div></td>
+              <td><span class="badge badge-blue">● Auto-Docketed</span></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">DBA-2024-00612</span></td>
+              <td><div class="case-name">Chen v. Pacific Construction LLC</div><div class="case-sub">DBA · Los Angeles DO</div></td>
+              <td><span class="badge badge-amber">DBA</span></td>
+              <td><span class="badge badge-purple">Decision</span></td>
+              <td>ALJ Rivera</td>
+              <td>Jan 8, 2024</td>
+              <td><div class="sla-ring sla-over" style="width:36px;height:36px;font-size:9px;">+2d</div></td>
+              <td><span class="badge badge-red">● SLA Breach</span></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">WB-2024-00743</span></td>
+              <td><div class="case-name">Nguyen v. TechCorp Solutions</div><div class="case-sub">Whistleblower · National Office</div></td>
+              <td><span class="badge badge-purple">Whistleblower</span></td>
+              <td><span class="badge badge-green">Settled</span></td>
+              <td>ALJ Chen</td>
+              <td>Feb 22, 2024</td>
+              <td><div class="sla-ring sla-ok" style="width:36px;height:36px;font-size:9px;">✓</div></td>
+              <td><span class="badge badge-green">● Settlement</span></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">LCA-2024-00901</span></td>
+              <td><div class="case-name">Okafor v. Meridian Shipping Co.</div><div class="case-sub">Longshore · Baltimore DO</div></td>
+              <td><span class="badge badge-blue">Longshore</span></td>
+              <td><span class="badge badge-red">Post-Decision</span></td>
+              <td>ALJ Park</td>
+              <td>Nov 3, 2023</td>
+              <td><div class="sla-ring sla-warn" style="width:36px;height:36px;font-size:9px;">⚠</div></td>
+              <td><span class="badge badge-amber">● Appeal Pending</span></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">PERM-2024-00334</span></td>
+              <td><div class="case-name">DataSystems Inc. (Re: V. Patel)</div><div class="case-sub">PERM · BALCA · National Office</div></td>
+              <td><span class="badge badge-gray">PERM</span></td>
+              <td><span class="badge badge-amber">Pre-Hearing</span></td>
+              <td>BALCA Panel</td>
+              <td>Apr 2, 2024</td>
+              <td><div class="sla-ring sla-ok" style="width:36px;height:36px;font-size:9px;">OK</div></td>
+              <td><span class="badge badge-green">● On Track</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: INTAKE ══ -->
+    <div class="screen" id="screen-intake">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Intake & Docketing</span></div>
+      <div class="three-col" style="margin-bottom:18px;">
+        <div class="stat-card green"><div class="stat-val">38</div><div class="stat-lbl">Pending Docketing</div><div class="stat-delta neutral">Auto-processing</div></div>
+        <div class="stat-card amber"><div class="stat-val">4</div><div class="stat-lbl">Validation Errors</div><div class="stat-delta down">Deficiency notices sent</div></div>
+        <div class="stat-card accent"><div class="stat-val">99.4%</div><div class="stat-lbl">Auto-Docket Rate</div><div class="stat-delta up">↑ from 0% AS-IS</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Filing Channels — Today</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-size:20px;">🌐</span>
+              <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">Unified Filing Portal</div><div style="font-size:11px;color:var(--text3);">Real-time · Auto-validated</div></div>
+              <div style="text-align:right;"><span class="badge badge-green">● Live</span><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--green);margin-top:3px;">31 filings</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-size:20px;">📧</span>
+              <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">Email / Fax Auto-Gateway</div><div style="font-size:11px;color:var(--text3);">OCR processed · Auto-ingested</div></div>
+              <div style="text-align:right;"><span class="badge badge-green">● Live</span><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--green);margin-top:3px;">5 filings</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-size:20px;">🔗</span>
+              <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">Agency API (OWCP / OFLC)</div><div style="font-size:11px;color:var(--text3);">Real-time sync · Zero-lag</div></div>
+              <div style="text-align:right;"><span class="badge badge-green">● Live</span><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--green);margin-top:3px;">2 filings</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Validation Queue</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="alert-bar">⚠ 4 filings require deficiency resolution — notices sent automatically</div>
+            <table class="data-table">
+              <thead><tr><th>Filing ID</th><th>Issue</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><span class="case-id">DRAFT-4421</span></td><td style="font-size:11.5px;">Missing respondent address</td><td><span class="badge badge-amber">Awaiting</span></td></tr>
+                <tr><td><span class="case-id">DRAFT-4418</span></td><td style="font-size:11.5px;">Incomplete injury date</td><td><span class="badge badge-amber">Awaiting</span></td></tr>
+                <tr><td><span class="case-id">DRAFT-4415</span></td><td style="font-size:11.5px;">Missing employer EIN</td><td><span class="badge badge-green">Resolved ✓</span></td></tr>
+                <tr><td><span class="case-id">DRAFT-4409</span></td><td style="font-size:11.5px;">Duplicate filing detected</td><td><span class="badge badge-red">Review</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: ASSIGNMENT ══ -->
+    <div class="screen" id="screen-assignment">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Assignment & BALCA</span></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Workload-Balanced Assignment Queue</div>
+          <div class="alert-bar" style="background:rgba(0,180,216,.1);border-color:rgba(0,180,216,.3);color:var(--accent);">⚡ AI recommends 3 auto-assignments based on workload balance — <span style="text-decoration:underline;cursor:pointer;">Review & Approve</span></div>
+          <table class="data-table">
+            <thead><tr><th>Case</th><th>Program</th><th>Recommended ALJ</th><th>Reason</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><span class="case-id">BLA-2024-01204</span></td><td><span class="badge badge-gray">Black Lung</span></td><td>ALJ Thompson</td><td style="font-size:11px;color:var(--text3);">Lowest caseload · Pittsburgh</td><td><button class="btn btn-primary btn-sm" onclick="openModal('modal-assign')">Assign</button></td></tr>
+              <tr><td><span class="case-id">LCA-2024-00912</span></td><td><span class="badge badge-blue">Longshore</span></td><td>ALJ Rodriguez</td><td style="font-size:11px;color:var(--text3);">Specialty match · NY</td><td><button class="btn btn-primary btn-sm" onclick="openModal('modal-assign')">Assign</button></td></tr>
+              <tr><td><span class="case-id">WB-2024-00801</span></td><td><span class="badge badge-purple">Whistleblower</span></td><td>ALJ Kim</td><td style="font-size:11px;color:var(--text3);">Availability · DC</td><td><button class="btn btn-primary btn-sm" onclick="openModal('modal-assign')">Assign</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">Judge Workload Balance</div>
+          <div class="judge-row"><div class="avatar" style="width:26px;height:26px;font-size:10px;">MT</div><div class="judge-name">ALJ Martinez</div><div class="judge-bar-wrap"><div class="prog-bar"><div class="prog-fill" style="width:78%;background:var(--green);"></div></div></div><div class="judge-count">78</div></div>
+          <div class="judge-row"><div class="avatar" style="width:26px;height:26px;font-size:10px;">TH</div><div class="judge-name">ALJ Thompson</div><div class="judge-bar-wrap"><div class="prog-bar"><div class="prog-fill" style="width:52%;background:var(--green);"></div></div></div><div class="judge-count">52</div></div>
+          <div class="judge-row"><div class="avatar" style="width:26px;height:26px;font-size:10px;">RR</div><div class="judge-name">ALJ Rivera</div><div class="judge-bar-wrap"><div class="prog-bar"><div class="prog-fill" style="width:91%;background:var(--amber);"></div></div></div><div class="judge-count">91</div></div>
+          <div class="judge-row"><div class="avatar" style="width:26px;height:26px;font-size:10px;">JC</div><div class="judge-name">ALJ Chen</div><div class="judge-bar-wrap"><div class="prog-bar"><div class="prog-fill" style="width:44%;background:var(--green);"></div></div></div><div class="judge-count">44</div></div>
+          <div class="judge-row"><div class="avatar" style="width:26px;height:26px;font-size:10px;">SP</div><div class="judge-name">ALJ Park</div><div class="judge-bar-wrap"><div class="prog-bar"><div class="prog-fill" style="width:103%;background:var(--red);"></div></div></div><div class="judge-count" style="color:var(--red);">103</div></div>
+          <div style="font-size:10.5px;color:var(--text3);margin-top:10px;">Target: 85 active cases per ALJ · <span style="color:var(--red);">ALJ Park over capacity</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: PRE-HEARING ══ -->
+    <div class="screen" id="screen-prehearing">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Pre-Hearing Management</span></div>
+      <div class="alert-bar">⚠ 2 hearing scheduling conflicts auto-detected — alternative dates have been proposed to parties</div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Upcoming Hearings — Next 14 Days</div>
+          <table class="data-table">
+            <thead><tr><th>Case</th><th>Date / Time</th><th>Format</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr onclick="showScreen('casedetail',null)"><td><span class="case-id">LCA-2024-00847</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 4 · 10:00 AM</td><td><span class="badge badge-blue">💻 Video</span></td><td><span class="badge badge-green">Confirmed</span></td></tr>
+              <tr><td><span class="case-id">DBA-2024-00544</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 5 · 9:30 AM</td><td><span class="badge badge-gray">🏛 In-Person</span></td><td><span class="badge badge-green">Confirmed</span></td></tr>
+              <tr><td><span class="case-id">WB-2024-00711</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 6 · 2:00 PM</td><td><span class="badge badge-purple">📄 Hybrid</span></td><td><span class="badge badge-amber">⚠ Conflict</span></td></tr>
+              <tr><td><span class="case-id">BLA-2024-01044</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 10 · 10:00 AM</td><td><span class="badge badge-blue">💻 Video</span></td><td><span class="badge badge-amber">⚠ Rescheduling</span></td></tr>
+              <tr><td><span class="case-id">LCA-2024-00812</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 12 · 1:30 PM</td><td><span class="badge badge-gray">🏛 In-Person</span></td><td><span class="badge badge-green">Confirmed</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">Active Settlement Tracks</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;border:1px solid rgba(139,120,240,.3);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="case-id">WB-2024-00743</span><span class="badge badge-green">✓ Settlement Reached</span></div>
+              <div style="font-size:11.5px;color:var(--text2);">Nguyen v. TechCorp · Settlement Judge Chen</div>
+              <div style="font-size:10.5px;color:var(--text3);margin-top:4px;">🔒 Workspace encrypted · Agreement uploaded · Presiding judge notified</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;border:1px solid rgba(139,120,240,.3);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="case-id">LCA-2024-00799</span><span class="badge badge-purple">In Progress</span></div>
+              <div style="font-size:11.5px;color:var(--text2);">Patel v. Global Shipping · Settlement Judge Kim</div>
+              <div style="font-size:10.5px;color:var(--text3);margin-top:4px;">🔒 Workspace active · Session 3 of negotiations</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;border:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="case-id">DBA-2024-00501</span><span class="badge badge-amber">Awaiting Party</span></div>
+              <div style="font-size:11.5px;color:var(--text2);">Chen v. BrightStar LLC · Settlement Judge Park</div>
+              <div style="font-size:10.5px;color:var(--text3);margin-top:4px;">🔒 Workspace created · Awaiting respondent acceptance</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: HEARING ══ -->
+    <div class="screen" id="screen-hearing">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Hearing Management</span></div>
+      <div class="three-col" style="margin-bottom:18px;">
+        <div class="stat-card accent"><div class="stat-val">3</div><div class="stat-lbl">Live Now</div><div class="stat-delta up">● Active sessions</div></div>
+        <div class="stat-card green"><div class="stat-val">31</div><div class="stat-lbl">Awaiting Transcript</div><div class="stat-delta neutral">Court reporters notified</div></div>
+        <div class="stat-card amber"><div class="stat-val">12</div><div class="stat-lbl">Record Completeness Check</div><div class="stat-delta neutral">Auto-reminders sent</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Active Hearing Sessions</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="background:var(--surface2);border:1px solid rgba(0,200,150,.4);border-radius:8px;padding:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span class="case-id">LCA-2024-00847</span>
+                <span class="badge badge-green">● LIVE — 1h 23m</span>
+              </div>
+              <div style="font-size:12px;color:var(--text);margin-bottom:4px;">Patel v. Harbor Freight Inc.</div>
+              <div style="font-size:11px;color:var(--text3);">ALJ Thompson · Video Hearing · 4 participants</div>
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <button class="btn btn-primary btn-sm">Join Session</button>
+                <button class="btn btn-ghost btn-sm">Evidence Workspace</button>
+                <button class="btn btn-ghost btn-sm">Issue Order</button>
+              </div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid rgba(0,200,150,.4);border-radius:8px;padding:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span class="case-id">DBA-2024-00544</span>
+                <span class="badge badge-green">● LIVE — 0h 47m</span>
+              </div>
+              <div style="font-size:12px;color:var(--text);margin-bottom:4px;">Chen v. Pacific Construction LLC</div>
+              <div style="font-size:11px;color:var(--text3);">ALJ Rivera · In-Person · LA District Office</div>
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <button class="btn btn-ghost btn-sm">Evidence Workspace</button>
+                <button class="btn btn-ghost btn-sm">Issue Order</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Post-Hearing — Record Closure Tracker</div>
+          <table class="data-table">
+            <thead><tr><th>Case</th><th>Transcript</th><th>Briefs</th><th>Record</th></tr></thead>
+            <tbody>
+              <tr><td><span class="case-id">LCA-2024-00791</span></td><td><span class="badge badge-green">Received ✓</span></td><td><span class="badge badge-green">Received ✓</span></td><td><span class="badge badge-green">Auto-Closed ✓</span></td></tr>
+              <tr><td><span class="case-id">WB-2024-00688</span></td><td><span class="badge badge-amber">Pending</span></td><td><span class="badge badge-green">Received ✓</span></td><td><span class="badge badge-amber">Awaiting</span></td></tr>
+              <tr><td><span class="case-id">BLA-2024-00941</span></td><td><span class="badge badge-green">Received ✓</span></td><td><span class="badge badge-amber">Due Jun 8</span></td><td><span class="badge badge-amber">Awaiting</span></td></tr>
+              <tr><td><span class="case-id">DBA-2024-00488</span></td><td><span class="badge badge-red">⚠ Overdue</span></td><td><span class="badge badge-green">Received ✓</span></td><td><span class="badge badge-red">Escalated</span></td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:10.5px;color:var(--text3);margin-top:10px;">Auto-reminders sent to court reporters for overdue transcripts · Escalation triggered after 7 days</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: DECISION ══ -->
+    <div class="screen" id="screen-decision">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Decision Workspace</span></div>
+      <div class="alert-bar">⚠ 3 decisions approaching SLA threshold — assigned judges notified automatically</div>
+      <div class="card" style="margin-bottom:18px;padding:0;overflow:hidden;">
+        <table class="data-table">
+          <thead><tr><th>Case</th><th>Record Closed</th><th>Assigned To</th><th>Draft Status</th><th>SLA Remaining</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="case-id">LCA-2024-00791</span><div style="font-size:10.5px;color:var(--text3);">Longshore</div></td>
+              <td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 15, 2024</td>
+              <td>ALJ Thompson<div style="font-size:10px;color:var(--text3);">Writing directly</div></td>
+              <td><span class="badge badge-amber">Draft v2 — Review</span></td>
+              <td><div class="sla-ring sla-warn" style="width:36px;height:36px;font-size:9px;">8d</div></td>
+              <td><button class="btn btn-primary btn-sm">Open Draft</button></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">DBA-2024-00612</span><div style="font-size:10.5px;color:var(--text3);">DBA</div></td>
+              <td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Apr 18, 2024</td>
+              <td>ALJ Rivera<div style="font-size:10px;color:var(--text3);">Contract writer</div></td>
+              <td><span class="badge badge-red">⚠ Overdue Review</span></td>
+              <td><div class="sla-ring sla-over" style="width:36px;height:36px;font-size:9px;">-2d</div></td>
+              <td><button class="btn btn-primary btn-sm">Open Draft</button></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">WB-2024-00688</span><div style="font-size:10.5px;color:var(--text3);">Whistleblower</div></td>
+              <td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 28, 2024</td>
+              <td>ALJ Park<div style="font-size:10px;color:var(--text3);">Law clerk</div></td>
+              <td><span class="badge badge-blue">Clerk Drafting</span></td>
+              <td><div class="sla-ring sla-ok" style="width:36px;height:36px;font-size:9px;">22d</div></td>
+              <td><button class="btn btn-ghost btn-sm">View</button></td>
+            </tr>
+            <tr>
+              <td><span class="case-id">LCA-2024-00831</span><div style="font-size:10.5px;color:var(--text3);">Longshore</div></td>
+              <td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 10, 2024</td>
+              <td>ALJ Martinez<div style="font-size:10px;color:var(--text3);">Writing directly</div></td>
+              <td><span class="badge badge-green">✓ Issued Today</span></td>
+              <td><div class="sla-ring sla-ok" style="width:36px;height:36px;font-size:9px;">✓</div></td>
+              <td><button class="btn btn-ghost btn-sm">View</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">E-Signature & Issuance Queue</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;border:1px solid rgba(0,200,150,.3);display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">🖊️</span>
+              <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">LCA-2024-00831 · Ready for issuance</div><div style="font-size:11px;color:var(--text3);">ALJ Martinez · Final review complete</div></div>
+              <button class="btn btn-primary btn-sm">Sign & Issue</button>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;border:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">📤</span>
+              <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);">Auto-Publication Pipeline</div><div style="font-size:11px;color:var(--text3);">Decisions issued today auto-publish to OALJ.DOL.GOV within 2 min</div></div>
+              <span class="badge badge-green">● Live</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Decision Metrics — May 2024</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Avg. days from record close to decision</span><span style="color:var(--green);font-weight:600;font-family:'IBM Plex Mono',monospace;">38.2d</span></div><div class="prog-bar"><div class="prog-fill" style="width:76%;background:var(--green);"></div></div><div style="font-size:10px;color:var(--text3);margin-top:2px;">Target: 45 days · On track</div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Decisions auto-published same day</span><span style="color:var(--green);font-weight:600;">100%</span></div><div class="prog-bar"><div class="prog-fill" style="width:100%;background:var(--green);"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Contributor tracking coverage</span><span style="color:var(--green);font-weight:600;">100%</span></div><div class="prog-bar"><div class="prog-fill" style="width:100%;background:var(--green);"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: POST-DECISION ══ -->
+    <div class="screen" id="screen-postdecision">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Post-Decision Management</span></div>
+      <div class="three-col" style="margin-bottom:18px;">
+        <div class="stat-card red"><div class="stat-val">18</div><div class="stat-lbl">Active Appeals</div><div class="stat-delta neutral">All tracked digitally</div></div>
+        <div class="stat-card amber"><div class="stat-val">7</div><div class="stat-lbl">Reconsiderations</div><div class="stat-delta neutral">Pending judge review</div></div>
+        <div class="stat-card green"><div class="stat-val">0</div><div class="stat-lbl">Lost File Incidents</div><div class="stat-delta up">↓ from avg. 4/yr AS-IS</div></div>
+      </div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-appeals')">⚖️ Appeals (18)</div>
+        <div class="tab" onclick="switchTab(this,'tab-recon')">🔄 Reconsideration (7)</div>
+        <div class="tab" onclick="switchTab(this,'tab-fees')">💼 Attorney Fees (12)</div>
+        <div class="tab" onclick="switchTab(this,'tab-referral')">🔁 Second Referral (3)</div>
+      </div>
+
+      <div id="tab-appeals">
+        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;">
+          <span style="font-size:12px;color:var(--text3);">Live Appeals Dashboard — all parties see real-time status</span>
+          <span class="badge badge-green" style="margin-left:auto;">● No paper shipping</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="appeal-card">
+            <div class="appeal-header">
+              <div><div class="appeal-id">ARB-LCA-2024-00831</div><div style="font-size:12px;color:var(--text);margin-top:2px;">Patel v. Harbor Freight · Appeal to ARB</div></div>
+              <span class="badge badge-blue">ARB Review</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3);">Filed: May 28, 2024 · Digital record transmitted · No shipping</div>
+            <div class="appeal-status-track">
+              <div class="track-step done"></div>
+              <div class="track-step done"></div>
+              <div class="track-step active"></div>
+              <div class="track-step"></div>
+              <div class="track-step"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;"><span>Filed</span><span>Record Tx'd</span><span>ARB Review</span><span>Outcome</span><span>Closed</span></div>
+          </div>
+          <div class="appeal-card">
+            <div class="appeal-header">
+              <div><div class="appeal-id">BRB-LCA-2024-00901</div><div style="font-size:12px;color:var(--text);margin-top:2px;">Okafor v. Meridian Shipping · Appeal to BRB</div></div>
+              <span class="badge badge-amber">⚠ Remanded</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3);">Remand received Jun 1 · Case auto-reopened · ALJ Park notified</div>
+            <div class="appeal-status-track">
+              <div class="track-step done"></div>
+              <div class="track-step done"></div>
+              <div class="track-step done"></div>
+              <div class="track-step done"></div>
+              <div class="track-step active"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;"><span>Filed</span><span>Record Tx'd</span><span>BRB Review</span><span>Remanded</span><span>New Decision</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-recon" style="display:none;">
+        <table class="data-table">
+          <thead><tr><th>Case</th><th>Motion Filed</th><th>Judge</th><th>Determination</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><span class="case-id">LCA-2024-00744</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 30</td><td>ALJ Thompson</td><td><span class="badge badge-amber">Pending Review</span></td><td><span class="badge badge-amber">In Workspace</span></td></tr>
+            <tr><td><span class="case-id">WB-2024-00601</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 22</td><td>ALJ Chen</td><td><span class="badge badge-green">Upheld</span></td><td><span class="badge badge-green">Auto-Closed ✓</span></td></tr>
+            <tr><td><span class="case-id">BLA-2024-00812</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 1</td><td>ALJ Kim</td><td><span class="badge badge-red">Vacate</span></td><td><span class="badge badge-amber">Auto-Reopened</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-fees" style="display:none;">
+        <table class="data-table">
+          <thead><tr><th>Case</th><th>Petition Filed</th><th>Objections</th><th>Decision Due</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><span class="case-id">LCA-2024-00741</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 10</td><td><span class="badge badge-red">Yes — filed</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 14</td><td><span class="badge badge-amber">Judge Review</span></td></tr>
+            <tr><td><span class="case-id">WB-2024-00612</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 18</td><td><span class="badge badge-gray">None</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 18</td><td><span class="badge badge-blue">Auto-Flagged Ready</span></td></tr>
+            <tr><td><span class="case-id">DBA-2024-00398</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Apr 29</td><td><span class="badge badge-gray">Deadline passed</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 29</td><td><span class="badge badge-green">Fee Order Final ✓</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-referral" style="display:none;">
+        <table class="data-table">
+          <thead><tr><th>Case</th><th>Remand Issued</th><th>OWCP Status</th><th>Return ETA</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><span class="case-id">BLA-2024-00744</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">May 2</td><td><span class="badge badge-amber">Actions In Progress</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">~Jun 15</td><td><span class="badge badge-blue">Tracked via API</span></td></tr>
+            <tr><td><span class="case-id">LCA-2024-00622</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Apr 18</td><td><span class="badge badge-green">Complete</span></td><td style="font-size:11px;font-family:'IBM Plex Mono',monospace;">Jun 1 ✓</td><td><span class="badge badge-green">Auto-Docketed ✓</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: CASE DETAIL ══ -->
+    <div class="screen" id="screen-casedetail">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> All Cases <span class="sep">›</span> <span>LCA-2024-00847</span></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+        <div style="font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:var(--text);">Patel v. Harbor Freight Inc.</div>
+        <span class="badge badge-blue">Longshore</span>
+        <span class="badge badge-amber">Pre-Hearing</span>
+        <span class="badge badge-green">● On Track</span>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto;">Issue Order</button>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('modal-schedulehearing')">Schedule Hearing</button>
+      </div>
+
+      <div class="case-meta-grid">
+        <div class="meta-item"><div class="meta-label">Case ID</div><div class="meta-value mono">LCA-2024-00847</div></div>
+        <div class="meta-item"><div class="meta-label">ALJ Assigned</div><div class="meta-value">ALJ Thompson · New York DO</div></div>
+        <div class="meta-item"><div class="meta-label">Date Filed</div><div class="meta-value">March 14, 2024</div></div>
+        <div class="meta-item"><div class="meta-label">Hearing Date</div><div class="meta-value">June 4, 2024 · 10:00 AM</div></div>
+        <div class="meta-item"><div class="meta-label">Hearing Format</div><div class="meta-value">💻 Video — Link ready</div></div>
+        <div class="meta-item"><div class="meta-label">SLA Status</div><div class="meta-value" style="color:var(--green);">✓ On track</div></div>
+        <div class="meta-item"><div class="meta-label">Claimant</div><div class="meta-value">Chuck Patel</div></div>
+        <div class="meta-item"><div class="meta-label">Respondent</div><div class="meta-value">Harbor Freight Inc.</div></div>
+        <div class="meta-item"><div class="meta-label">District Office</div><div class="meta-value">New York</div></div>
+      </div>
+
+      <!-- Phase progress -->
+      <div class="pipeline" style="margin-bottom:18px;">
+        <div class="pipe-step done"><span class="pipe-num">1</span>Intake</div>
+        <div class="pipe-step done"><span class="pipe-num">2</span>Assignment</div>
+        <div class="pipe-step active"><span class="pipe-num">3</span>Pre-Hearing</div>
+        <div class="pipe-step pending"><span class="pipe-num">4</span>Hearing</div>
+        <div class="pipe-step pending"><span class="pipe-num">5</span>Decision</div>
+        <div class="pipe-step pending"><span class="pipe-num">6</span>Post-Decision</div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Case Timeline</div>
+          <div class="timeline">
+            <div class="tl-item"><div class="tl-dot done">✓</div><div class="tl-content"><div class="tl-title">Auto-Docketed via Unified Portal</div><div class="tl-sub">Filing validated · Case number assigned automatically</div><div class="tl-date">Mar 14, 2024 · 11:32 AM</div></div></div>
+            <div class="tl-item"><div class="tl-dot done">✓</div><div class="tl-content"><div class="tl-title">Assigned to ALJ Thompson</div><div class="tl-sub">Workload-balanced auto-assignment · New York DO</div><div class="tl-date">Mar 14, 2024 · 11:33 AM</div></div></div>
+            <div class="tl-item"><div class="tl-dot done">✓</div><div class="tl-content"><div class="tl-title">Notice of Hearing Issued</div><div class="tl-sub">Auto-sent to all parties · Video link included</div><div class="tl-date">Apr 2, 2024 · 9:00 AM</div></div></div>
+            <div class="tl-item"><div class="tl-dot done">✓</div><div class="tl-content"><div class="tl-title">Prehearing Conference — Video</div><div class="tl-sub">Transcript auto-integrated to case record</div><div class="tl-date">May 1, 2024 · 2:00 PM</div></div></div>
+            <div class="tl-item"><div class="tl-dot done">✓</div><div class="tl-content"><div class="tl-title">3 Motions Filed via Portal</div><div class="tl-sub">Auto-docketed · ALJ Thompson notified</div><div class="tl-date">May 8–22, 2024</div></div></div>
+            <div class="tl-item"><div class="tl-dot active">⚡</div><div class="tl-content"><div class="tl-title">Hearing Scheduled — June 4</div><div class="tl-sub">Video format · Parties confirmed · Link distributed</div><div class="tl-date">Upcoming · Jun 4, 2024 · 10:00 AM</div></div></div>
+            <div class="tl-item"><div class="tl-dot pending">○</div><div class="tl-content"><div class="tl-title">Post-Hearing Phase</div><div class="tl-sub">Briefs, transcript, record closure</div><div class="tl-date">Pending</div></div></div>
+            <div class="tl-item"><div class="tl-dot pending">○</div><div class="tl-content"><div class="tl-title">Decision</div><div class="tl-sub">Drafting, e-signature, auto-publication</div><div class="tl-date">Pending</div></div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-title">Documents & Evidence</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface2);border-radius:6px;font-size:12px;"><span>📄</span><span style="flex:1;color:var(--text);">Original Complaint Filing</span><span class="badge badge-green">Verified</span></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface2);border-radius:6px;font-size:12px;"><span>📄</span><span style="flex:1;color:var(--text);">Prehearing Conference Transcript</span><span class="badge badge-green">Linked</span></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface2);border-radius:6px;font-size:12px;"><span>📄</span><span style="flex:1;color:var(--text);">Motion to Compel Discovery</span><span class="badge badge-green">Filed</span></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface2);border-radius:6px;font-size:12px;"><span>📄</span><span style="flex:1;color:var(--text);">Respondent's Answer</span><span class="badge badge-green">Filed</span></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface2);border-radius:6px;font-size:12px;color:var(--text3);"><span>📄</span><span style="flex:1;">Hearing Transcript</span><span class="badge badge-gray">Pending Hearing</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Parties & Representatives</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="padding:8px;background:var(--surface2);border-radius:6px;"><div style="font-size:12px;font-weight:600;color:var(--text);">Chuck Patel · Claimant</div><div style="font-size:11px;color:var(--text3);">Rep: Jane Wilson, Esq. · Registered EFS ✓</div></div>
+              <div style="padding:8px;background:var(--surface2);border-radius:6px;"><div style="font-size:12px;font-weight:600;color:var(--text);">Harbor Freight Inc. · Respondent</div><div style="font-size:11px;color:var(--text3);">Rep: Morrison & Foerster LLP · Registered EFS ✓</div></div>
+              <div style="padding:8px;background:var(--surface2);border-radius:6px;"><div style="font-size:12px;font-weight:600;color:var(--text);">Liberty Mutual · Insurance Carrier</div><div style="font-size:11px;color:var(--text3);">Rep: David Lee, Esq. · Registered EFS ✓</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: ANALYTICS ══ -->
+    <div class="screen" id="screen-analytics">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Analytics</span></div>
+      <div class="stat-row" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card green"><div class="stat-val">38.2d</div><div class="stat-lbl">Avg. Decision Time</div><div class="stat-delta up">↓ 22% vs AS-IS baseline</div></div>
+        <div class="stat-card accent"><div class="stat-val">99.4%</div><div class="stat-lbl">Auto-Docket Rate</div><div class="stat-delta up">↑ from 0% AS-IS</div></div>
+        <div class="stat-card green"><div class="stat-val">0</div><div class="stat-lbl">Lost Files YTD</div><div class="stat-delta up">↓ from 4 avg. AS-IS</div></div>
+        <div class="stat-card amber"><div class="stat-val">87%</div><div class="stat-lbl">On-Time Decisions</div><div class="stat-delta up">↑ 14pts vs AS-IS</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Decisions by Month — 2024</div>
+          <div class="bar-chart">
+            <div class="bar" style="height:55%;"><div class="bar-val">67</div></div>
+            <div class="bar" style="height:70%;background:var(--accent);"><div class="bar-val">86</div></div>
+            <div class="bar" style="height:62%;"><div class="bar-val">76</div></div>
+            <div class="bar" style="height:80%;background:var(--green);"><div class="bar-val">98</div></div>
+            <div class="bar" style="height:75%;background:var(--green);"><div class="bar-val">92</div></div>
+            <div class="bar" style="height:77%;background:var(--accent);"><div class="bar-val">94</div></div>
+          </div>
+          <div class="bar-labels">
+            <div class="bar-label">JAN</div><div class="bar-label">FEB</div><div class="bar-label">MAR</div><div class="bar-label">APR</div><div class="bar-label">MAY</div><div class="bar-label">JUN</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">TO-BE vs AS-IS — Key Improvements</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Second Referral loop reduction</span><span style="color:var(--green);font-weight:600;">↓ 68%</span></div><div class="prog-bar"><div class="prog-fill" style="width:68%;background:var(--green);"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Manual staff scheduling hours saved</span><span style="color:var(--green);font-weight:600;">↓ 71%</span></div><div class="prog-bar"><div class="prog-fill" style="width:71%;background:var(--green);"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Time from filing to docketing</span><span style="color:var(--green);font-weight:600;">↓ 98%</span></div><div class="prog-bar"><div class="prog-fill" style="width:98%;background:var(--green);"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Appeal record transmission time</span><span style="color:var(--green);font-weight:600;">↓ 99%</span></div><div class="prog-bar"><div class="prog-fill" style="width:99%;background:var(--green);"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--text2);">Lost file incidents</span><span style="color:var(--green);font-weight:600;">-100%</span></div><div class="prog-bar"><div class="prog-fill" style="width:100%;background:var(--green);"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN: WORKLOAD ══ -->
+    <div class="screen" id="screen-workload">
+      <div class="breadcrumb">OALJ CMS <span class="sep">›</span> <span>Workload Management</span></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">ALJ Caseload — National</div>
+          <div style="margin-bottom:8px;font-size:11px;color:var(--text3);">Target: 85 active cases per ALJ · <span style="color:var(--red);">Red = over capacity</span></div>
+          <div class="judge-row"><div class="avatar" style="width:28px;height:28px;font-size:10px;">SJ</div><div class="judge-name">ALJ Martinez · DC</div><div class="judge-bar-wrap"><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:78%;background:var(--green);height:100%;"></div></div></div><div class="judge-count">78</div></div>
+          <div class="judge-row"><div class="avatar" style="width:28px;height:28px;font-size:10px;">TH</div><div class="judge-name">ALJ Thompson · NY</div><div class="judge-bar-wrap"><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:61%;background:var(--green);height:100%;"></div></div></div><div class="judge-count">52</div></div>
+          <div class="judge-row"><div class="avatar" style="width:28px;height:28px;font-size:10px;">RR</div><div class="judge-name">ALJ Rivera · LA</div><div class="judge-bar-wrap"><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:91%;background:var(--amber);height:100%;"></div></div></div><div class="judge-count" style="color:var(--amber);">91</div></div>
+          <div class="judge-row"><div class="avatar" style="width:28px;height:28px;font-size:10px;">JC</div><div class="judge-name">ALJ Chen · DC</div><div class="judge-bar-wrap"><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:52%;background:var(--green);height:100%;"></div></div></div><div class="judge-count">44</div></div>
+          <div class="judge-row"><div class="avatar" style="width:28px;height:28px;font-size:10px;">SP</div><div class="judge-name">ALJ Park · Baltimore</div><div class="judge-bar-wrap"><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:100%;background:var(--red);height:100%;"></div></div></div><div class="judge-count" style="color:var(--red);">103</div></div>
+          <div class="judge-row"><div class="avatar" style="width:28px;height:28px;font-size:10px;">MK</div><div class="judge-name">ALJ Kim · Pittsburgh</div><div class="judge-bar-wrap"><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:65%;background:var(--green);height:100%;"></div></div></div><div class="judge-count">55</div></div>
+          <div style="margin-top:14px;"><button class="btn btn-primary btn-sm">⚡ Rebalance Workload</button></div>
+        </div>
+        <div class="card">
+          <div class="card-title">District Office Load</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--text);">New York</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text3);">312 cases</span></div><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:62%;background:var(--green);height:100%;"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--text);">Washington DC / National</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text3);">445 cases</span></div><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:89%;background:var(--amber);height:100%;"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--text);">Pittsburgh</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text3);">198 cases</span></div><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:40%;background:var(--green);height:100%;"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--text);">Los Angeles</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text3);">287 cases</span></div><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:57%;background:var(--green);height:100%;"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--text);">Baltimore</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text3);">241 cases</span></div><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:48%;background:var(--green);height:100%;"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--text);">Boston</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text3);">166 cases</span></div><div class="prog-bar" style="height:8px;"><div class="prog-fill" style="width:33%;background:var(--green);height:100%;"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ══════════ MODAL: NEW FILING ══════════ -->
+<div class="modal-overlay" id="modal-newfiling">
+  <div class="modal" style="width:700px;">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-eyebrow">Phase 1 · Intake & Docketing</div>
+        <div class="modal-title">New Case Filing</div>
+        <div class="modal-sub">Submit a new matter for docketing — all fields marked <span style="color:var(--red);">*</span> are required</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-newfiling')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-section-title">Program & Filing Type</div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Program <span class="required-star">*</span></label>
+          <select class="form-select" onchange="updateCasePrefix(this)">
+            <option value="">— Select Program —</option>
+            <option value="LCA">Longshore & Harbor Workers (LHWCA)</option>
+            <option value="DBA">Defense Base Act (DBA)</option>
+            <option value="BLA">Black Lung (BLBA)</option>
+            <option value="WB">Whistleblower (STAA / SOX / AIR21)</option>
+            <option value="PERM">PERM / Labor Certification (BALCA)</option>
+            <option value="OFLC">OFLC Administrative Review</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Filing Channel</label>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12.5px;color:var(--text2);">
+            🌐 Unified Filing Portal <span class="auto-tag">⚡ Auto-detected</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Case ID & Office Assignment</div>
+      <div class="form-row cols-3">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Case Number <span class="auto-tag">⚡ Auto-assigned</span></label>
+          <div class="field-with-auto">
+            <input class="form-input" id="case-num-preview" value="LCA-2024-—" readonly style="background:var(--surface3);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:12px;" />
+          </div>
+          <div class="form-hint">Generated automatically upon submission</div>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">District Office <span class="required-star">*</span></label>
+          <select class="form-select">
+            <option>— Select Office —</option>
+            <option>National Office (Washington DC)</option>
+            <option>New York</option>
+            <option>Pittsburgh</option>
+            <option>Los Angeles</option>
+            <option>Baltimore</option>
+            <option>Boston</option>
+            <option>Jacksonville</option>
+            <option>New Orleans</option>
+            <option>San Francisco</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Date of Injury / Event <span class="required-star">*</span></label>
+          <input class="form-input" type="date" />
+        </div>
+      </div>
+
+      <div class="form-section-title">Claimant Information</div>
+      <div class="form-row cols-3">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">First Name <span class="required-star">*</span></label>
+          <input class="form-input" type="text" placeholder="First name" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Last Name <span class="required-star">*</span></label>
+          <input class="form-input" type="text" placeholder="Last name" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">SSN (last 4) <span class="required-star">*</span></label>
+          <input class="form-input" type="text" placeholder="XXXX" maxlength="4" />
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Claimant Email</label>
+          <input class="form-input" type="email" placeholder="email@example.com" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Claimant Attorney / Rep</label>
+          <input class="form-input" type="text" placeholder="Attorney name or firm" />
+        </div>
+      </div>
+
+      <div class="form-section-title">Respondent / Employer Information</div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Employer / Respondent Name <span class="required-star">*</span></label>
+          <input class="form-input" type="text" placeholder="Company or individual name" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Employer EIN <span class="required-star">*</span></label>
+          <input class="form-input" type="text" placeholder="XX-XXXXXXX" />
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Insurance Carrier</label>
+          <input class="form-input" type="text" placeholder="Carrier name" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Respondent Attorney / Rep</label>
+          <input class="form-input" type="text" placeholder="Attorney name or firm" />
+        </div>
+      </div>
+
+      <div class="form-section-title">Supporting Documents</div>
+      <div style="background:var(--surface2);border:2px dashed var(--border2);border-radius:8px;padding:20px;text-align:center;cursor:pointer;" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border2)'">
+        <div style="font-size:22px;margin-bottom:6px;">📎</div>
+        <div style="font-size:12.5px;font-weight:600;color:var(--text);">Drop files here or click to browse</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;">Accepted: PDF, DOCX, TIFF · Max 25MB per file</div>
+      </div>
+      <div class="form-hint" style="margin-top:8px;">Files are auto-linked to the case record upon submission · All uploads encrypted in transit</div>
+
+      <div class="form-section-title">Additional Notes</div>
+      <textarea class="form-textarea" placeholder="Any special circumstances, case notes, or routing instructions..."></textarea>
+
+    </div>
+    <div class="modal-footer">
+      <div style="flex:1;font-size:11px;color:var(--text3);">⚡ Case number assigned instantly · Parties notified automatically · Record created in real-time</div>
+      <button class="btn btn-ghost" onclick="closeModal('modal-newfiling')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitForm('modal-newfiling','New filing submitted — case auto-docketed!')">Submit & Docket</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: SCHEDULE HEARING ══════════ -->
+<div class="modal-overlay" id="modal-schedulehearing">
+  <div class="modal" style="width:680px;">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-eyebrow">Phase 3 · Pre-Hearing · LCA-2024-00847</div>
+        <div class="modal-title">Schedule Hearing</div>
+        <div class="modal-sub">Patel v. Harbor Freight Inc. · ALJ Thompson · New York DO</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-schedulehearing')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-section-title">Hearing Format</div>
+      <div class="form-radio-group" id="hearing-format-group">
+        <label class="form-radio selected" onclick="selectRadio(this,'hearing-format-group')">
+          <input type="radio" name="format" value="video" checked /> 💻 Video Hearing
+        </label>
+        <label class="form-radio" onclick="selectRadio(this,'hearing-format-group')">
+          <input type="radio" name="format" value="inperson" /> 🏛 In-Person
+        </label>
+        <label class="form-radio" onclick="selectRadio(this,'hearing-format-group')">
+          <input type="radio" name="format" value="hybrid" /> 📄 Hybrid
+        </label>
+        <label class="form-radio" onclick="selectRadio(this,'hearing-format-group')">
+          <input type="radio" name="format" value="record" /> 📋 Decision on Record
+        </label>
+      </div>
+      <div class="form-hint" style="margin-top:6px;">Video link will be auto-generated and distributed to all parties upon scheduling</div>
+
+      <div class="form-section-title">Date & Time</div>
+      <div class="form-row cols-3">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Hearing Date <span class="required-star">*</span></label>
+          <input class="form-input" type="date" value="2024-06-04" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Start Time <span class="required-star">*</span></label>
+          <select class="form-select">
+            <option>9:00 AM</option>
+            <option selected>10:00 AM</option>
+            <option>10:30 AM</option>
+            <option>1:00 PM</option>
+            <option>1:30 PM</option>
+            <option>2:00 PM</option>
+            <option>2:30 PM</option>
+            <option>3:00 PM</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Estimated Duration</label>
+          <select class="form-select">
+            <option>1 hour</option>
+            <option>2 hours</option>
+            <option selected>Half day (4 hrs)</option>
+            <option>Full day</option>
+            <option>Multi-day</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.3);border-radius:8px;padding:12px 14px;margin-top:4px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;">✅</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--green);">No scheduling conflicts detected</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:1px;">ALJ Thompson available · All party representatives marked available for Jun 4</div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Hearing Location / Connection</div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Hearing Room / Platform</label>
+          <select class="form-select">
+            <option selected>Microsoft Teams (Auto-generated link)</option>
+            <option>Zoom (DOL Instance)</option>
+            <option>New York DO — Room 4A</option>
+            <option>New York DO — Room 4B</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Court Reporter <span class="required-star">*</span></label>
+          <select class="form-select">
+            <option>— Select Reporter —</option>
+            <option selected>Alderson Court Reporting (Contract)</option>
+            <option>National Court Reporting (Contract)</option>
+            <option>Other — enter below</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Interpreter / Accessibility</div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Interpreter Required?</label>
+          <select class="form-select">
+            <option>No</option>
+            <option>Yes — Spanish</option>
+            <option>Yes — Mandarin</option>
+            <option>Yes — Other (specify in notes)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Accessibility Accommodations</label>
+          <select class="form-select">
+            <option>None required</option>
+            <option>Captioning (CART)</option>
+            <option>Sign language interpreter</option>
+            <option>Other (specify in notes)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Parties to Notify</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:12px;">
+          <span style="color:var(--text);">Chuck Patel (Claimant)</span>
+          <span style="color:var(--text3);">via Jane Wilson, Esq. · EFS Portal</span>
+          <span class="badge badge-green">✓ Auto-notify</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:12px;">
+          <span style="color:var(--text);">Harbor Freight Inc. (Respondent)</span>
+          <span style="color:var(--text3);">via Morrison & Foerster LLP · EFS Portal</span>
+          <span class="badge badge-green">✓ Auto-notify</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:12px;">
+          <span style="color:var(--text);">Liberty Mutual (Carrier)</span>
+          <span style="color:var(--text3);">via David Lee, Esq. · EFS Portal</span>
+          <span class="badge badge-green">✓ Auto-notify</span>
+        </div>
+      </div>
+
+      <div class="form-section-title">Prehearing Instructions</div>
+      <textarea class="form-textarea" placeholder="Enter any prehearing orders, exhibit submission deadlines, briefing schedules, or special instructions for parties...">Parties shall exchange exhibit lists no later than 10 business days prior to hearing. All exhibits must be uploaded to the case portal no later than 5 business days prior to hearing.</textarea>
+
+    </div>
+    <div class="modal-footer">
+      <div style="flex:1;font-size:11px;color:var(--text3);">⚡ Video link auto-generated · All parties notified instantly · Court reporter auto-booked · Calendar updated</div>
+      <button class="btn btn-ghost" onclick="closeModal('modal-schedulehearing')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-schedulehearing')">Save Draft</button>
+      <button class="btn btn-primary" onclick="submitForm('modal-schedulehearing','Hearing scheduled — all parties notified automatically!')">Confirm & Notify Parties</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: ASSIGN CASE ══════════ -->
+<div class="modal-overlay" id="modal-assign">
+  <div class="modal" style="width:640px;">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-eyebrow">Phase 2 · Assignment & BALCA</div>
+        <div class="modal-title">Assign Case to ALJ</div>
+        <div class="modal-sub">Review AI recommendation and confirm or override assignment</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-assign')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div style="background:rgba(0,180,216,.08);border:1px solid rgba(0,180,216,.3);border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">⚡ AI Workload Recommendation</div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="avatar" style="width:40px;height:40px;font-size:14px;">TH</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">ALJ Thompson — New York District Office</div>
+            <div style="font-size:11.5px;color:var(--text3);margin-top:2px;">Longshore specialty match · 52 active cases (lowest in program) · Available immediately</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--green);">94%</div>
+            <div style="font-size:10px;color:var(--text3);">match score</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Case Being Assigned</div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Case ID</label>
+          <input class="form-input" value="BLA-2024-01204" readonly style="background:var(--surface3);color:var(--accent);font-family:'IBM Plex Mono',monospace;" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Program</label>
+          <input class="form-input" value="Black Lung (BLBA)" readonly style="background:var(--surface3);color:var(--text2);" />
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Claimant</label>
+          <input class="form-input" value="Estate of R. Kowalski" readonly style="background:var(--surface3);color:var(--text2);" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">District Office</label>
+          <input class="form-input" value="Pittsburgh" readonly style="background:var(--surface3);color:var(--text2);" />
+        </div>
+      </div>
+
+      <div class="form-section-title">Judge Assignment</div>
+      <div class="form-radio-group" id="assign-mode-group" style="margin-bottom:14px;">
+        <label class="form-radio selected" onclick="selectRadio(this,'assign-mode-group');document.getElementById('manual-judge-row').style.display='none'">
+          <input type="radio" name="assignmode" checked /> ⚡ Accept AI Recommendation
+        </label>
+        <label class="form-radio" onclick="selectRadio(this,'assign-mode-group');document.getElementById('manual-judge-row').style.display='grid'">
+          <input type="radio" name="assignmode" /> ✏️ Override — Manual Select
+        </label>
+      </div>
+
+      <div class="form-row cols-2" id="manual-judge-row" style="display:none;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Select ALJ <span class="required-star">*</span></label>
+          <select class="form-select">
+            <option>— Select ALJ —</option>
+            <option>ALJ Martinez · DC (78 cases)</option>
+            <option>ALJ Thompson · NY (52 cases) ← Recommended</option>
+            <option>ALJ Rivera · LA (91 cases — near capacity)</option>
+            <option>ALJ Chen · DC (44 cases)</option>
+            <option>ALJ Park · Baltimore (103 cases — OVER CAPACITY)</option>
+            <option>ALJ Kim · Pittsburgh (55 cases)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Override Reason <span class="required-star">*</span></label>
+          <select class="form-select">
+            <option>— Select reason —</option>
+            <option>Party request / recusal</option>
+            <option>Geographic preference</option>
+            <option>Subject matter expertise</option>
+            <option>Prior familiarity with case</option>
+            <option>Supervisory direction</option>
+            <option>Other (add note)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Assignment Type</div>
+      <div class="form-radio-group" id="assign-type-group">
+        <label class="form-radio selected" onclick="selectRadio(this,'assign-type-group')">
+          <input type="radio" name="assigntype" checked /> 📋 Primary Assignment
+        </label>
+        <label class="form-radio" onclick="selectRadio(this,'assign-type-group')">
+          <input type="radio" name="assigntype" /> 🔁 Second Referral
+        </label>
+        <label class="form-radio" onclick="selectRadio(this,'assign-type-group')">
+          <input type="radio" name="assigntype" /> ⚖️ BALCA Panel
+        </label>
+        <label class="form-radio" onclick="selectRadio(this,'assign-type-group')">
+          <input type="radio" name="assigntype" /> 🤝 Settlement Judge
+        </label>
+      </div>
+
+      <div class="form-section-title">Priority & SLA</div>
+      <div class="form-row cols-2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Case Priority</label>
+          <select class="form-select">
+            <option>Standard</option>
+            <option>Expedited</option>
+            <option>Emergency</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Docketing Target Date <span class="auto-tag">⚡ Auto-calculated</span></label>
+          <input class="form-input" value="Jun 4, 2024" readonly style="background:var(--surface3);color:var(--text2);" />
+          <div class="form-hint">Based on program SLA rules (21-day notice requirement)</div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Assignment Notes</div>
+      <textarea class="form-textarea" placeholder="Optional notes for the assigned judge — special circumstances, prior case history, related matters..."></textarea>
+
+    </div>
+    <div class="modal-footer">
+      <div style="flex:1;font-size:11px;color:var(--text3);">⚡ Judge notified instantly · Case added to docket · SLA clock starts · Parties auto-informed of assignment</div>
+      <button class="btn btn-ghost" onclick="closeModal('modal-assign')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitForm('modal-assign','Case assigned — ALJ Thompson notified, docket updated!')">Confirm Assignment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TOAST NOTIFICATION ══════════ -->
+<div id="toast" style="position:fixed;bottom:28px;right:28px;background:var(--surface);border:1px solid var(--green);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:2000;opacity:0;transform:translateY(12px);transition:all .3s;pointer-events:none;max-width:380px;">
+  <span style="font-size:18px;">✅</span>
+  <div>
+    <div style="font-size:12.5px;font-weight:600;color:var(--green);" id="toast-msg">Action completed</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:1px;">System updated · All parties notified</div>
+  </div>
+</div>
+
+<script>
+function showScreen(id, clickedNav) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+
+  if (clickedNav) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    clickedNav.classList.add('active');
+  } else {
+    // Try to match nav item by screen id
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+        document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+        n.classList.add('active');
+      }
+    });
+  }
+
+  const titles = {
+    dashboard: ['Dashboard', '· OALJ Case Management Platform'],
+    cases: ['All Cases', '· 1,847 active cases'],
+    intake: ['Intake & Docketing', '· Automated processing'],
+    assignment: ['Assignment', '· Workload-balanced AI routing'],
+    prehearing: ['Pre-Hearing Management', '· Digital scheduling & settlement'],
+    hearing: ['Hearing Management', '· Live & scheduled sessions'],
+    decision: ['Decision Workspace', '· E-signature & auto-publication'],
+    postdecision: ['Post-Decision Management', '· Appeals, reconsideration, fees'],
+    casedetail: ['Case Detail', '· LCA-2024-00847'],
+    analytics: ['Analytics', '· Performance & compliance metrics'],
+    workload: ['Workload Management', '· ALJ capacity dashboard'],
+  };
+  if (titles[id]) {
+    document.getElementById('topbar-title').textContent = titles[id][0];
+    document.getElementById('topbar-sub').textContent = titles[id][1];
+  }
+}
+
+function switchTab(el, tabId) {
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['tab-appeals','tab-recon','tab-fees','tab-referral'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === tabId ? 'block' : 'none';
+  });
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) closeModal(this.id);
+  });
+});
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+  }
+});
+
+function selectRadio(el, groupId) {
+  document.querySelectorAll('#' + groupId + ' .form-radio').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function updateCasePrefix(sel) {
+  const val = sel.value || 'CASE';
+  const year = new Date().getFullYear();
+  const seq = String(Math.floor(Math.random() * 900) + 100).padStart(5, '0');
+  const preview = document.getElementById('case-num-preview');
+  if (preview) preview.value = val ? `${val}-${year}-${seq}` : `—-${year}-—`;
+}
+
+function submitForm(modalId, message) {
+  closeModal(modalId);
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = message;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateY(0)';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(12px)';
+  }, 3500);
+}
+</script>
+</body>
+</html>

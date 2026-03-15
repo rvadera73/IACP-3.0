@@ -1,0 +1,57 @@
+# Cloud Build configuration for IACP-2.1
+# Trigger: Push to main branch
+# Destination: Cloud Run (gen-lang-client-0565298632/us-central1/iacp-2-1)
+
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-2-0-repo/iacp-2-1:${SHORT_SHA}'
+      - '.'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-2-0-repo/iacp-2-1:${SHORT_SHA}'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: deploy
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'iacp-2-1'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-2-0-repo/iacp-2-1:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--concurrency=80'
+      - '--timeout=300'
+      - '--min-instances=0'
+      - '--max-instances=5'
+      - '--startup-timeout=10'
+      - '--set-env-vars=GEMINI_API_KEY=${_GEMINI_API_KEY}'
+
+  # Output service URL
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: output
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run services describe iacp-2-1 --region=${_REGION} --format='value(status.url)'
+
+substitutions:
+  _REGION: us-central1
+  _GEMINI_API_KEY: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY
