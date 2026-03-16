@@ -33,7 +33,7 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildxx
         uses: docker/setup-buildx-action@v3
 
       - name: Authenticate to Google Cloud
@@ -58,28 +58,29 @@ jobs:
 
       - name: Deploy to Cloud Run
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.REGION }}
-          image: ${{ steps.build.outputs.image }}
-          flags: |
-            --allow-unauthenticated
-            --memory=512Mi
-            --cpu=1
-            --concurrency=80
-            --timeout=300
-            --min-instances=0
-            --max-instances=5
-            --set-env-vars=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+        run: |
+          gcloud run deploy ${SERVICE_NAME} \
+            --image ${IMAGE_URI} \
+            --region ${REGION} \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --concurrency 80 \
+            --timeout 300 \
+            --min-instances 0 \
+            --max-instances 5 \
+            --set-env-vars GEMINI_API_KEI=${{ secrets.GEMINI_API_KEY }} \
+            --format=value(status.url)
+          echo "url=$(gcloud run services describe ${SERVICE_NAME} --region ${REGION} --format='value(status.url)')" >> $GITHUB_OUTPUT
 
       - name: Deployment Summary
         run: |
-          echo "=========================================="
-          echo "✅ Deployment Successful!"
-          echo "=========================================="
+          echo "===================================================="
+          echo "┊┋ Deployment Successful!"
+          echo "===================================================="
           echo "Service: ${SERVICE_NAME}"
           echo "Region: ${REGION}"
           echo "Project: ${PROJECT_ID}"
           echo "URL: ${{ steps.deploy.outputs.url }}"
-          echo "=========================================="
+          echo "===================================================="
