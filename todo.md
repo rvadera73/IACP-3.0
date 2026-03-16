@@ -1,5 +1,33 @@
 # IACP-2.1 - Intelligent Adjudicatory Case Portal
 
+## 🚀 Today's Session - March 15, 2026
+
+### Deployment Achievements ✅
+- [x] Dev server running on http://localhost:3000
+- [x] GitHub Actions workflow created (.github/workflows/deploy-cloudrun.yml)
+- [x] Deployed to Cloud Run: https://iacp-3-0-718853420926.us-central1.run.app
+- [x] Service deployed successfully using gcloud
+
+### Code Commits ✅
+- [x] feat(roles): add multi-portal support for OALJ and BOARDS workspaces
+- [x] ci: add GitHub Actions workflow for Cloud Run deployment  
+- [x] fix: use gcloud run deploy command instead of deploy-cloudrun action
+
+### Project Understanding ✅
+- [x] RBAC configuration verified (src/core/rbac.ts)
+- [x] 8 user roles confirmed with correct case type separation:
+  - **OALJ Roles** (BLA, LHC, PER): Docket Clerk, Attorney-Advisor, Legal Assistant, Judge
+  - **Boards Roles** (BRB, ARB, ECAB): Board Docket Clerk, Board Attorney-Advisor, Board Legal Assistant, Board Member
+
+### Pending for Next Session
+- [ ] Create enhanced mock data file (src/data/mockDataEnhanced.ts)
+- [ ] Implement Docket Clerk auto-docketing workflow
+- [ ] Implement deficiency notification system
+- [ ] Implement Legal Assistant scheduling features
+
+---
+
+
 ## 🎉 Latest Release: v4.4.0 (March 14, 2026) - DEPLOYED ✅
 
 ### **Complete View/Download, Document Viewer, Legal Research & Full Deployment**
