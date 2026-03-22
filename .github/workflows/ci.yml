@@ -1,0 +1,170 @@
+name: CI - Test & Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: iacp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+        python-version: ['3.11']
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install npm dependencies
+        run: npm ci
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-cov black flake8
+      
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/iacp_test
+        run: |
+          pip install alembic
+          alembic upgrade head
+      
+      - name: Lint frontend
+        run: npm run lint
+      
+      - name: Lint backend
+        run: |
+          black backend/ --check
+          flake8 backend/
+      
+      - name: Type check frontend
+        run: npm run type-check
+      
+      - name: Run frontend tests
+        run: npm run test:coverage
+      
+      - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/iacp_test
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          pytest backend/tests/ --cov=backend --cov-report=xml
+      
+      - name: Upload coverage to GitHub
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage/
+      
+      - name: Upload coverage to Codecov (optional)
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/
+      
+      - name: Build Docker images
+        run: |
+          docker build -t iacp-public-gateway -f Dockerfile.public .
+          docker build -t iacp-internal-gateway -f Dockerfile.internal .
+          docker build -t iacp-court-record -f backend/Dockerfile .
+      
+      - name: Test Docker images
+        run: |
+          docker run --rm iacp-public-gateway npm run test
+          docker run --rm iacp-internal-gateway npm run test
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+      
+      - name: Run Dependabot alerts check
+        uses: dependabot/fetch-metadata@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          languages: javascript,python
+
+  accessibility:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Serve application
+        run: |
+          npx serve dist/ -p 3000 &
+          sleep 5
+      
+      - name: Run accessibility tests
+        run: |
+          npm install -g @axe-core/cli
+          axe http://localhost:3000 --exit

@@ -1,0 +1,157 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  SERVICE_NAME_PUBLIC: iacp-public-gateway-staging
+  SERVICE_NAME_INTERNAL: iacp-internal-gateway-staging
+  REGION: us-central1
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+      
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev
+      
+      - name: Build and push public gateway image
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/public-gateway:${{ github.sha }} -f Dockerfile.public .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/public-gateway:${{ github.sha }}
+      
+      - name: Build and push internal gateway image
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/internal-gateway:${{ github.sha }} -f Dockerfile.internal .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/internal-gateway:${{ github.sha }}
+      
+      - name: Build and push backend services image
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/court-record:${{ github.sha }} -f backend/Dockerfile .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/court-record:${{ github.sha }}
+      
+      - name: Deploy public gateway to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE_NAME_PUBLIC }}
+          region: ${{ env.REGION }}
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/public-gateway:${{ github.sha }}
+          env_vars: |
+            NODE_ENV=staging
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+          flags: |
+            --allow-unauthenticated
+            --min-instances=1
+            --max-instances=10
+            --cpu=2
+            --memory=1Gi
+            --timeout=300
+      
+      - name: Deploy internal gateway to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE_NAME_INTERNAL }}
+          region: ${{ env.REGION }}
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/internal-gateway:${{ github.sha }}
+          env_vars: |
+            NODE_ENV=staging
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+          flags: |
+            --min-instances=1
+            --max-instances=10
+            --cpu=2
+            --memory=1Gi
+            --timeout=300
+      
+      - name: Deploy backend services to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: iacp-court-record-staging
+          region: ${{ env.REGION }}
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/court-record:${{ github.sha }}
+          env_vars: |
+            PYTHONUNBUFFERED=1
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          flags: |
+            --min-instances=1
+            --max-instances=10
+            --cpu=2
+            --memory=1Gi
+            --timeout=300
+      
+      - name: Run database migrations
+        run: |
+          gcloud run jobs describe iacp-migrations-staging --region=${{ env.REGION }} || \
+          gcloud run jobs create iacp-migrations-staging \
+            --region=${{ env.REGION }} \
+            --task-timeout=1h \
+            --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/court-record:${{ github.sha }} \
+            --command="alembic upgrade head"
+      
+      - name: Get service URLs
+        id: get-urls
+        run: |
+          PUBLIC_URL=$(gcloud run services describe ${{ env.SERVICE_NAME_PUBLIC }} --region=${{ env.REGION }} --format='value(status.url)')
+          INTERNAL_URL=$(gcloud run services describe ${{ env.SERVICE_NAME_INTERNAL }} --region=${{ env.REGION }} --format='value(status.url)')
+          echo "public_url=${PUBLIC_URL}" >> $GITHUB_OUTPUT
+          echo "internal_url=${INTERNAL_URL}" >> $GITHUB_OUTPUT
+      
+      - name: Comment PR with deployment URLs
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `
+              ## 🚀 Staging Deployment Complete!
+              
+              **Public Gateway:** ${{ steps.get-urls.outputs.public_url }}
+              **Internal Gateway:** ${{ steps.get-urls.outputs.internal_url }}
+              
+              Deployed at: ${new Date().toISOString()}
+              Commit: ${{ github.sha }}
+              `
+            })
+      
+      - name: Run smoke tests
+        run: |
+          curl -f ${{ steps.get-urls.outputs.public_url }}/health || exit 1
+          curl -f ${{ steps.get-urls.outputs.internal_url }}/health || exit 1
+      
+      - name: Output deployment summary
+        run: |
+          echo "✅ Deployment Complete!"
+          echo ""
+          echo "📦 Services Deployed:"
+          echo "   - Public Gateway: ${{ steps.get-urls.outputs.public_url }}"
+          echo "   - Internal Gateway: ${{ steps.get-urls.outputs.internal_url }}"
+          echo ""
+          echo "🔍 Health Checks:"
+          echo "   - Public: ${{ steps.get-urls.outputs.public_url }}/health"
+          echo "   - Internal: ${{ steps.get-urls.outputs.internal_url }}/health"

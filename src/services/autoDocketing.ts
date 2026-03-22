@@ -232,24 +232,328 @@ export async function autoDocketFiling(
 export function generateDeficiencyNotice(
   filingData: any,
   deficiencies: Deficiency[],
-  claimantName: string
+  claimantName: string,
+  caseNumber?: string
 ): string {
   const today = new Date().toLocaleDateString();
   const deadline = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString();
-  
+
   let notice = `NOTICE OF DEFICIENCY\n\n`;
   notice += `Date: ${today}\n`;
+  if (caseNumber) {
+    notice += `Case Number: ${caseNumber}\n`;
+  }
   notice += `To: ${claimantName}\n\n`;
   notice += `Your filing has been reviewed and the following deficiencies were found:\n\n`;
-  
+
   deficiencies.forEach((def, idx) => {
     notice += `${idx + 1}. ${def.type}: ${def.description}\n`;
   });
-  
+
   notice += `\nPlease correct these deficiencies and resubmit by ${deadline}.\n`;
   notice += `Failure to do so may result in dismissal of your claim.\n\n`;
   notice += `Office of Administrative Law Judges\n`;
   notice += `U.S. Department of Labor`;
-  
+
   return notice;
+}
+
+/**
+ * Enhanced Auto-Docketing Result with tracking
+ */
+export interface EnhancedAutoDocketResult extends AutoDocketResult {
+  intakeId: string;
+  processedAt: string;
+  processingTimeMs: number;
+  channel: string;
+  assignedClerk?: string;
+}
+
+/**
+ * Batch auto-docketing for multiple filings
+ */
+export interface BatchDocketResult {
+  total: number;
+  successful: number;
+  failed: number;
+  requiresManualReview: number;
+  results: EnhancedAutoDocketResult[];
+}
+
+/**
+ * Auto-docketing statistics
+ */
+export interface AutoDocketStats {
+  totalProcessed: number;
+  autoDocketed: number;
+  manualReview: number;
+  deficiencyNotices: number;
+  averageProcessingTime: number;
+  successRate: number;
+}
+
+/**
+ * Track auto-docketing session
+ */
+let processingStats: AutoDocketStats = {
+  totalProcessed: 0,
+  autoDocketed: 0,
+  manualReview: 0,
+  deficiencyNotices: 0,
+  averageProcessingTime: 0,
+  successRate: 0,
+};
+
+/**
+ * Enhanced auto-docketing with tracking and statistics
+ */
+export async function enhancedAutoDocketFiling(
+  intakeId: string,
+  filingData: any,
+  caseType: string,
+  channel: string,
+  documentText?: string,
+  assignedClerk?: string
+): Promise<EnhancedAutoDocketResult> {
+  const startTime = Date.now();
+
+  // 1. Validate filing
+  const validation = validateFilingForDocketing(filingData, caseType, documentText);
+
+  // 2. Check if can auto-docket
+  if (!validation.canAutoDocket) {
+    const processingTime = Date.now() - startTime;
+    
+    // Update statistics
+    processingStats.totalProcessed++;
+    if (validation.recommendedAction === 'Deficiency Notice') {
+      processingStats.deficiencyNotices++;
+    } else {
+      processingStats.manualReview++;
+    }
+    updateAverageProcessingTime(processingTime);
+
+    return {
+      success: false,
+      intakeId,
+      processedAt: new Date().toISOString(),
+      processingTimeMs: processingTime,
+      channel,
+      assignedClerk,
+      message: `Filing cannot be auto-docketed. ${validation.deficiencies.length} deficiency(ies) found.`,
+      validation,
+    };
+  }
+
+  // 3. Generate docket number
+  const docketNumber = generateDocketNumber(caseType);
+
+  // 4. Update statistics
+  const processingTime = Date.now() - startTime;
+  processingStats.totalProcessed++;
+  processingStats.autoDocketed++;
+  updateAverageProcessingTime(processingTime);
+
+  // 5. Return success
+  return {
+    success: true,
+    intakeId,
+    docketNumber,
+    processedAt: new Date().toISOString(),
+    processingTimeMs: processingTime,
+    channel,
+    assignedClerk,
+    message: `Successfully docketed as ${docketNumber}`,
+    validation,
+  };
+}
+
+/**
+ * Process batch of filings
+ */
+export async function batchAutoDocketFilings(
+  filings: Array<{
+    intakeId: string;
+    filingData: any;
+    caseType: string;
+    channel: string;
+    documentText?: string;
+  }>
+): Promise<BatchDocketResult> {
+  const results: EnhancedAutoDocketResult[] = [];
+
+  for (const filing of filings) {
+    const result = await enhancedAutoDocketFiling(
+      filing.intakeId,
+      filing.filingData,
+      filing.caseType,
+      filing.channel,
+      filing.documentText
+    );
+    results.push(result);
+  }
+
+  return {
+    total: results.length,
+    successful: results.filter(r => r.success).length,
+    failed: results.filter(r => !r.success).length,
+    requiresManualReview: results.filter(r => r.validation.recommendedAction === 'Manual Review').length,
+    results,
+  };
+}
+
+/**
+ * Get auto-docketing statistics
+ */
+export function getAutoDocketStats(): AutoDocketStats {
+  return { ...processingStats };
+}
+
+/**
+ * Reset statistics (for testing)
+ */
+export function resetAutoDocketStats(): void {
+  processingStats = {
+    totalProcessed: 0,
+    autoDocketed: 0,
+    manualReview: 0,
+    deficiencyNotices: 0,
+    averageProcessingTime: 0,
+    successRate: 0,
+  };
+}
+
+/**
+ * Update average processing time
+ */
+function updateAverageProcessingTime(newTime: number): void {
+  const total = processingStats.totalProcessed;
+  const oldAvg = processingStats.averageProcessingTime;
+  processingStats.averageProcessingTime = ((oldAvg * (total - 1)) + newTime) / total;
+  processingStats.successRate = (processingStats.autoDocketed / processingStats.totalProcessed) * 100;
+}
+
+/**
+ * Generate deficiency notice with enhanced formatting
+ */
+export function generateEnhancedDeficiencyNotice(
+  filingData: any,
+  deficiencies: Deficiency[],
+  claimantName: string,
+  caseNumber: string,
+  claimantAddress?: string
+): {
+  content: string;
+  deadline: string;
+  noticeId: string;
+} {
+  const today = new Date();
+  const deadline = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  const noticeId = `DN-${Date.now()}`;
+
+  const deadlineStr = deadline.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  let notice = `═══════════════════════════════════════════════════════════\n`;
+  notice += `                    NOTICE OF DEFICIENCY\n`;
+  notice += `═══════════════════════════════════════════════════════════\n\n`;
+  notice += `Date: ${today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+  notice += `Case Number: ${caseNumber}\n`;
+  notice += `Notice ID: ${noticeId}\n\n`;
+  notice += `TO:\n`;
+  notice += `    ${claimantName}\n`;
+  if (claimantAddress) {
+    notice += `    ${claimantAddress}\n`;
+  }
+  notice += `\n`;
+  notice += `───────────────────────────────────────────────────────────\n`;
+  notice += `DEFICIENCIES IDENTIFIED\n`;
+  notice += `───────────────────────────────────────────────────────────\n\n`;
+  notice += `Your filing has been reviewed by our automated system and the\n`;
+  notice += `following deficiencies were identified:\n\n`;
+
+  deficiencies.forEach((def, idx) => {
+    notice += `  ${idx + 1}. ${def.type.toUpperCase()}\n`;
+    notice += `     Field: ${def.field}\n`;
+    notice += `     Issue: ${def.description}\n`;
+    notice += `     Severity: ${def.severity}\n\n`;
+  });
+
+  notice += `───────────────────────────────────────────────────────────\n`;
+  notice += `REQUIRED ACTION\n`;
+  notice += `───────────────────────────────────────────────────────────\n\n`;
+  notice += `You must correct the deficiencies listed above and resubmit\n`;
+  notice += `your filing no later than ${deadlineStr}.\n\n`;
+  notice += `FAILURE TO COMPLY:\n`;
+  notice += `If you fail to correct these deficiencies by the deadline,\n`;
+  notice += `your claim may be DISMISSED without further notice.\n\n`;
+  notice += `SUBMISSION INSTRUCTIONS:\n`;
+  notice += `You may resubmit your corrected filing through:\n`;
+  notice += `  - UFS Portal: https://ufs.dol.gov\n`;
+  notice += `  - Email: oalj@dol.gov\n`;
+  notice += `  - Mail: Office of Administrative Law Judges\n`;
+  notice += `           U.S. Department of Labor\n\n`;
+  notice += `If you have questions, contact the Docket Clerk at:\n`;
+  notice += `  Phone: (202) 555-0100\n`;
+  notice += `  Email: docket.clerk@dol.gov\n\n`;
+  notice += `═══════════════════════════════════════════════════════════\n`;
+  notice += `Office of Administrative Law Judges\n`;
+  notice += `U.S. Department of Labor\n`;
+  notice += `═══════════════════════════════════════════════════════════\n`;
+
+  return {
+    content: notice,
+    deadline: deadlineStr,
+    noticeId,
+  };
+}
+
+/**
+ * Validate deficiency correction
+ */
+export function validateDeficiencyCorrection(
+  originalDeficiency: Deficiency,
+  correctedValue: any
+): {
+  isCorrected: boolean;
+  message: string;
+} {
+  if (!correctedValue || correctedValue.toString().trim() === '') {
+    return {
+      isCorrected: false,
+      message: 'Field cannot be empty',
+    };
+  }
+
+  // Check for signature pattern
+  if (originalDeficiency.type === 'Missing Signature') {
+    const hasSignature = VALIDATION_RULES.SIGNATURE_PATTERNS.some(pattern =>
+      pattern.test(correctedValue.toString())
+    );
+    if (!hasSignature) {
+      return {
+        isCorrected: false,
+        message: 'Invalid signature format. Use /s/ Your Name or type your name',
+      };
+    }
+  }
+
+  // Check for SSN format
+  if (originalDeficiency.field === 'ssn') {
+    const ssnPattern = /^\d{3}-\d{2}-\d{4}$/;
+    if (!ssnPattern.test(correctedValue.toString())) {
+      return {
+        isCorrected: false,
+        message: 'Invalid SSN format. Use XXX-XX-XXXX',
+      };
+    }
+  }
+
+  return {
+    isCorrected: true,
+    message: 'Deficiency corrected successfully',
+  };
 }
