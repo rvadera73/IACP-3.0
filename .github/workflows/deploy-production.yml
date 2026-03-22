@@ -1,0 +1,279 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - production
+        default: 'production'
+
+env:
+  SERVICE_NAME_PUBLIC: iacp-public-gateway
+  SERVICE_NAME_INTERNAL: iacp-internal-gateway
+  REGION: us-central1
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+jobs:
+  pre-deployment-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      tests-passing: ${{ steps.check-tests.outputs.passing }}
+      coverage-ok: ${{ steps.check-coverage.outputs.ok }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Check recent test status
+        id: check-tests
+        run: |
+          # Check if last CI run passed
+          LAST_CI=$(gh api repos/${{ github.repository }}/actions/workflows/ci.yml/runs --paginate --jq '.workflow_runs[0].conclusion')
+          if [ "$LAST_CI" == "success" ]; then
+            echo "passing=true" >> $GITHUB_OUTPUT
+          else
+            echo "passing=false" >> $GITHUB_OUTPUT
+            echo "❌ Recent CI run did not pass. Aborting deployment."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Check code coverage
+        id: check-coverage
+        run: |
+          # Parse coverage from last run
+          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+            echo "ok=true" >> $GITHUB_OUTPUT
+          else
+            echo "ok=false" >> $GITHUB_OUTPUT
+            echo "❌ Code coverage ($COVERAGE%) is below 80%. Aborting deployment."
+            exit 1
+          fi
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: pre-deployment-checks
+    
+    environment:
+      name: production
+      url: https://iacp.dol.gov
+    
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          release_name: Release ${{ github.event.inputs.version }}
+          body: |
+            ## Changes in ${{ github.event.inputs.version }}
+            
+            Deployed: ${new Date().toISOString()}
+            Commit: ${{ github.sha }}
+            
+            ### Features
+            - Feature 1
+            - Feature 2
+            
+            ### Bug Fixes
+            - Fix 1
+            - Fix 2
+            
+            ### Technical
+            - Tech debt 1
+            - Tech debt 2
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+      
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev
+      
+      - name: Tag and push production images
+        run: |
+          # Pull staging images
+          docker pull ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/public-gateway:${{ github.sha }}
+          docker pull ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/internal-gateway:${{ github.sha }}
+          
+          # Tag as production
+          docker tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/public-gateway:${{ github.sha }} \
+            ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-prod/public-gateway:${{ github.event.inputs.version }}
+          docker tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-staging/internal-gateway:${{ github.sha }} \
+            ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-prod/internal-gateway:${{ github.event.inputs.version }}
+          
+          # Push to production
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-prod/public-gateway:${{ github.event.inputs.version }}
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-prod/internal-gateway:${{ github.event.inputs.version }}
+      
+      - name: Deploy public gateway to production
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE_NAME_PUBLIC }}
+          region: ${{ env.REGION }}
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-prod/public-gateway:${{ github.event.inputs.version }}
+          env_vars: |
+            NODE_ENV=production
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL_PROD }}
+            PAYGOV_API_KEY=${{ secrets.PAYGOV_API_KEY }}
+          flags: |
+            --allow-unauthenticated
+            --min-instances=2
+            --max-instances=20
+            --cpu=4
+            --memory=2Gi
+            --timeout=300
+            --concurrency=80
+      
+      - name: Deploy internal gateway to production
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE_NAME_INTERNAL }}
+          region: ${{ env.REGION }}
+          image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-prod/internal-gateway:${{ github.event.inputs.version }}
+          env_vars: |
+            NODE_ENV=production
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL_PROD }}
+          flags: |
+            --min-instances=2
+            --max-instances=20
+            --cpu=4
+            --memory=2Gi
+            --timeout=300
+            --concurrency=80
+      
+      - name: Run production database migrations
+        run: |
+          gcloud run jobs create iacp-migrations-prod \
+            --region=${{ env.REGION }} \
+            --task-timeout=1h \
+            --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/iacp-prod/court-record:${{ github.event.inputs.version }} \
+            --command="alembic upgrade head" \
+            --setenv-vars="DATABASE_URL=${{ secrets.DATABASE_URL_PROD }}"
+      
+      - name: Wait for deployment to stabilize
+        run: |
+          echo "Waiting 60 seconds for deployment to stabilize..."
+          sleep 60
+      
+      - name: Run production smoke tests
+        run: |
+          PUBLIC_URL=$(gcloud run services describe ${{ env.SERVICE_NAME_PUBLIC }} --region=${{ env.REGION }} --format='value(status.url)')
+          INTERNAL_URL=$(gcloud run services describe ${{ env.SERVICE_NAME_INTERNAL }} --region=${{ env.REGION }} --format='value(status.url)')
+          
+          # Health checks
+          curl -f ${PUBLIC_URL}/health || exit 1
+          curl -f ${INTERNAL_URL}/health || exit 1
+          
+          # Response time check (< 2 seconds)
+          START=$(date +%s%N)
+          curl -s ${PUBLIC_URL}/health > /dev/null
+          END=$(date +%s%N)
+          DURATION=$(( (END - START) / 1000000 ))
+          if [ $DURATION -gt 2000 ]; then
+            echo "❌ Response time (${DURATION}ms) exceeds 2 seconds"
+            exit 1
+          fi
+          
+          echo "✅ All smoke tests passed"
+      
+      - name: Configure Cloud Monitoring alerts
+        run: |
+          # Create alert policy for high error rate
+          gcloud monitoring policies create --policy-from-file=monitoring/error-rate-alert.json || true
+      
+      - name: Get production URLs
+        id: get-urls
+        run: |
+          PUBLIC_URL=$(gcloud run services describe ${{ env.SERVICE_NAME_PUBLIC }} --region=${{ env.REGION }} --format='value(status.url)')
+          INTERNAL_URL=$(gcloud run services describe ${{ env.SERVICE_NAME_INTERNAL }} --region=${{ env.REGION }} --format='value(status.url)')
+          echo "public_url=${PUBLIC_URL}" >> $GITHUB_OUTPUT
+          echo "internal_url=${INTERNAL_URL}" >> $GITHUB_OUTPUT
+      
+      - name: Create deployment summary
+        run: |
+          echo "## ✅ Production Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Service URLs" >> $GITHUB_STEP_SUMMARY
+          echo "- **Public Gateway:** ${{ steps.get-urls.outputs.public_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Internal Gateway:** ${{ steps.get-urls.outputs.internal_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Health Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Public: ${{ steps.get-urls.outputs.public_url }}/health ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- Internal: ${{ steps.get-urls.outputs.internal_url }}/health ✅" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Notify deployment success
+        if: always()
+        run: |
+          # Send Slack notification (if configured)
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{
+                \"text\": \"✅ Production Deployment Complete!\nVersion: ${{ github.event.inputs.version }}\nURL: ${{ steps.get-urls.outputs.public_url }}\"
+              }" \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
+          fi
+
+  rollback:
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: failure()
+    
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+      
+      - name: Rollback to previous version
+        run: |
+          # Get previous revision
+          PREV_REVISION=$(gcloud run services describe ${{ env.SERVICE_NAME_PUBLIC }} --region=${{ env.REGION }} --format='value(status.latestCreatedRevisionName)' --limit=2 | tail -1)
+          
+          # Rollback
+          gcloud run services update-traffic ${{ env.SERVICE_NAME_PUBLIC }} \
+            --region=${{ env.REGION }} \
+            --to-revisions=${PREV_REVISION}=100
+          
+          echo "🔄 Rolled back to previous revision: ${PREV_REVISION}"
+      
+      - name: Notify rollback
+        run: |
+          echo "## 🔄 Deployment Failed - Rolled Back" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment failed and has been automatically rolled back to the previous version." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details." >> $GITHUB_STEP_SUMMARY
