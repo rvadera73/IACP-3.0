@@ -6,6 +6,7 @@ dist/
 
 # Secrets - never commit
 GCP_SA_KEY.txt
+GCP_SA_KEY_GITHUB.txt
 secrets-to-add.txt
 SETUP-GCP-KEY.txt
 
