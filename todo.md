@@ -21,10 +21,10 @@
 
 | # | Issue | Task | Status |
 |---|-------|------|--------|
-| 1 | [#1](https://github.com/rvadera73/IACP-3.0/issues/1) | Fix UUID primary keys in backend models | Pending |
-| 2 | [#2](https://github.com/rvadera73/IACP-3.0/issues/2) | Delete legacy data model files, update references | Pending |
-| 3 | [#3](https://github.com/rvadera73/IACP-3.0/issues/3) | Add Pydantic request/response schemas | Pending |
-| 4 | [#4](https://github.com/rvadera73/IACP-3.0/issues/4) | Generate comprehensive seed_data.sql from prototype mock data | Pending |
+| 1 | [#1](https://github.com/rvadera73/IACP-3.0/issues/1) | Fix UUID primary keys in backend models | Complete |
+| 2 | [#2](https://github.com/rvadera73/IACP-3.0/issues/2) | Delete legacy data model files, update references | In Progress |
+| 3 | [#3](https://github.com/rvadera73/IACP-3.0/issues/3) | Add Pydantic request/response schemas | Complete |
+| 4 | [#4](https://github.com/rvadera73/IACP-3.0/issues/4) | Generate comprehensive seed_data.sql from prototype mock data | Complete |
 
 ### Aider (Backend Infrastructure)
 
@@ -40,8 +40,8 @@
 | 6 | [#6](https://github.com/rvadera73/IACP-3.0/issues/6) | Refactor backend to modular monolith | Pending |
 | 8 | [#8](https://github.com/rvadera73/IACP-3.0/issues/8) | Set up PyCasbin RBAC | Pending |
 | 9 | [#9](https://github.com/rvadera73/IACP-3.0/issues/9) | Public Portal: Landing page | Pending |
-| 10 | [#10](https://github.com/rvadera73/IACP-3.0/issues/10) | Public Portal: Google OAuth frontend | Pending |
-| 17 | [#17](https://github.com/rvadera73/IACP-3.0/issues/17) | React Query + API client setup | Pending |
+| 10 | [#10](https://github.com/rvadera73/IACP-3.0/issues/10) | Public Portal: Google OAuth frontend | In Progress |
+| 17 | [#17](https://github.com/rvadera73/IACP-3.0/issues/17) | React Query + API client setup | Complete |
 
 ### Copilot (DevOps)
 
@@ -57,7 +57,7 @@
 
 | # | Issue | Task | Status |
 |---|-------|------|--------|
-| 11 | [#11](https://github.com/rvadera73/IACP-3.0/issues/11) | Filing type selection wizard | Pending |
+| 11 | [#11](https://github.com/rvadera73/IACP-3.0/issues/11) | Filing type selection wizard | In Progress |
 | 16 | [#16](https://github.com/rvadera73/IACP-3.0/issues/16) | Shared UI component library | Pending |
 
 ### Aider (Backend)
@@ -90,7 +90,7 @@
 
 **Execution Order:**
 1. **Wave 1 (parallel):** #1, #2, #3, #4, #5 — Codex does fixes/cleanup, Aider does Alembic
-2. **Wave 2 (parallel):** #6, #13, #17, #16 — Qwen refactors backend, Copilot does Docker, Qwen starts frontend
+2. **Wave 2 (parallel):** #6, #13, #17, #16 — Frontend integration complete for React Query/API wiring; backend/devops items remain separate
 3. **Wave 3 (parallel):** #7, #8, #9, #14 — Aider does OAuth, Qwen does RBAC + landing page, Copilot does CI
 4. **Wave 4 (parallel):** #10, #11, #12, #15 — Frontend OAuth, wizard, filing API, tests
 
@@ -98,7 +98,28 @@
 
 ## Blocked
 
-_None currently._
+- Local Python environment is missing `fastapi`, `sqlalchemy`, and `pydantic`, so backend runtime smoke tests cannot run until dependencies are installed.
+
+---
+
+## Session Notes
+
+### 2026-03-23 Codex Summary
+
+- Completed backend UUID/default ID fixes and added typed Pydantic schemas for the FastAPI surface.
+- Repaired backend auto-docketing so filings without an attached case can still be docketed safely.
+- Fixed both seed paths:
+  - `backend/seed_data.py` now uses the live SQLAlchemy session factory and creates its required clerk/judge people.
+  - `database/seed_data.sql` now includes valid organization rows and all referenced internal users/offices.
+- Added public filing wizard/frontend auth work in progress on the React side.
+- Wave 2 frontend/API integration is complete for the current React surfaces; Wave 4 frontend work is partially complete through the public filing entry flow and demo sign-in UI.
+
+### Next Session Priorities
+
+1. Install backend Python dependencies locally and run a true create → queue → docket smoke test.
+2. Finish issue `#2` by auditing remaining data-model/documentation references and normalizing any stale paths.
+3. Continue Phase 1 backend work on Alembic/modularization/OAuth backend once local runtime is verified.
+4. Expand Wave 4 from frontend scaffolding into backend-backed OAuth and filing API coverage.
 
 ---
 
@@ -125,4 +146,4 @@ _None currently._
 ---
 
 **Last Updated:** 2026-03-23
-**Next Update:** After Wave 1 completes
+**Next Update:** After backend smoke testing or Wave 4 backend progress

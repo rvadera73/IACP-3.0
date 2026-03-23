@@ -21,13 +21,14 @@ INSERT INTO core.person (person_type, first_name, last_name, email, phone, addre
 ('individual', 'John', 'Doe', 'john.doe@legalaid.org', '(412) 555-1000', '100 Legal Way', 'Pittsburgh', 'PA', '15201', 'PA12345', 'PA'),
 ('individual', 'Jane', 'Smith', 'jane.smith@hansenlaw.com', '(412) 555-2000', '200 Law Street', 'Pittsburgh', 'PA', '15202', 'PA23456', 'PA'),
 ('individual', 'Michael', 'Johnson', 'm.johnson@defenseassoc.com', '(212) 555-3000', '300 Defense Plaza', 'New York', 'NY', '10002', 'NY34567', 'NY'),
-('individual', 'Patricia', 'Williams', 'p.williams@workersrights.org', '(415) 555-4000', '400 Rights Boulevard', 'San Francisco', 'CA', '94110', 'CA45678', 'CA'),
+('individual', 'Patricia', 'Williams', 'p.williams@workersrights.org', '(415) 555-4000', '400 Rights Boulevard', 'San Francisco', 'CA', '94110', 'CA45678', 'CA');
 
 -- Organization persons
-('organization', NULL, NULL, 'legal@harborfreight.com', '(412) 555-5000', '500 Industrial Park', 'Pittsburgh', 'PA', '15204', NULL, NULL),
-('organization', NULL, NULL, 'legal@apexcoal.com', '(412) 555-6000', '600 Mining Road', 'Pittsburgh', 'PA', '15205', NULL, NULL),
-('organization', NULL, NULL, 'hr@portauth.gov', '(212) 555-7000', '700 Port Authority', 'New York', 'NY', '10003', NULL, NULL),
-('organization', NULL, NULL, 'legal@techcorp.com', '(202) 555-8000', '800 Tech Circle', 'Washington', 'DC', '20001', NULL, NULL);
+INSERT INTO core.person (person_type, organization_name, email, phone, address_line_1, city, state, zip_code) VALUES
+('organization', 'Harbor Freight Inc.', 'legal@harborfreight.com', '(412) 555-5000', '500 Industrial Park', 'Pittsburgh', 'PA', '15204'),
+('organization', 'Apex Coal Mining', 'legal@apexcoal.com', '(412) 555-6000', '600 Mining Road', 'Pittsburgh', 'PA', '15205'),
+('organization', 'Port Authority', 'hr@portauth.gov', '(212) 555-7000', '700 Port Authority', 'New York', 'NY', '10003'),
+('organization', 'TechCorp Industries', 'legal@techcorp.com', '(202) 555-8000', '800 Tech Circle', 'Washington', 'DC', '20001');
 
 -- Insert sample users (internal staff)
 -- First, get person IDs for attorneys
@@ -50,6 +51,18 @@ END $$;
 INSERT INTO core."user" (person_id, google_oauth_id, role, office, is_active) VALUES
 ((SELECT id FROM core.person WHERE email = 'm.johnson@defenseassoc.com'), 'google-oauth-michael', 'alj', 'pittsburgh', TRUE),
 ((SELECT id FROM core.person WHERE email = 'p.williams@workersrights.org'), 'google-oauth-patricia', 'alj', 'san_francisco', TRUE);
+
+-- Additional internal users for offices referenced later in the seed data
+INSERT INTO core.person (person_type, first_name, last_name, email, city, state)
+VALUES
+('individual', 'Michael', 'Ross', 'michael.ross@dol.gov', 'New York', 'NY'),
+('individual', 'Amelia', 'Grant', 'amelia.grant@dol.gov', 'Washington', 'DC'),
+('individual', 'Dana', 'Clerk', 'dana.clerk@dol.gov', 'Pittsburgh', 'PA');
+
+INSERT INTO core."user" (person_id, google_oauth_id, role, office, is_active) VALUES
+((SELECT id FROM core.person WHERE email = 'michael.ross@dol.gov'), 'google-oauth-ross', 'alj', 'new_york', TRUE),
+((SELECT id FROM core.person WHERE email = 'amelia.grant@dol.gov'), 'google-oauth-grant', 'alj', 'washington_dc', TRUE),
+((SELECT id FROM core.person WHERE email = 'dana.clerk@dol.gov'), 'google-oauth-dana', 'docket_clerk', 'pittsburgh', TRUE);
 
 -- Insert sample cases
 INSERT INTO core.case (docket_number, case_type, title, current_phase, current_status, assigned_judge_id, docketed_date, docketed_by, docket_method, ai_docket_score, statutory_deadline, sla_status, referring_agency, referring_office, mine_state, responsible_operator) VALUES

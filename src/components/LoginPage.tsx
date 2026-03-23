@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { ROLES, OFFICES } from '../constants';
 import { Division } from '../types';
 import { motion } from 'motion/react';
+import { beginDemoSignIn } from '../services/auth';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -17,6 +18,8 @@ export default function LoginPage() {
 
   // Login form state
   const [email, setEmail] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [authProvider, setAuthProvider] = useState<'google' | 'login-gov' | 'dol-sso' | null>(null);
 
   // Role and profile setup state
   const [selectedRole, setSelectedRole] = useState<string>('');
@@ -45,17 +48,29 @@ export default function LoginPage() {
     }
   }, [location.state, login, navigate]);
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async (providerOverride?: 'google' | 'login-gov' | 'dol-sso') => {
     if (!selectedRole || !portal) return;
+    const provider = providerOverride || (portal === 'external' ? 'login-gov' : 'dol-sso');
 
-    login({
-      id: Math.random().toString(36).substr(2, 9),
-      name: email ? email.split('@')[0] : `Demo ${selectedRole}`,
-      role: selectedRole,
-      division: selectedDivision || (portal === 'internal' ? 'OALJ' : undefined),
-      office: selectedOffice || (portal === 'internal' ? OFFICES[0] : undefined),
-    });
-    navigate(portal === 'external' ? '/efs' : '/internal');
+    setIsSigningIn(true);
+    setAuthProvider(provider);
+
+    try {
+      const signedInUser = await beginDemoSignIn({
+        provider,
+        portal,
+        email,
+        role: selectedRole,
+        division: selectedDivision || (portal === 'internal' ? 'OALJ' : undefined),
+        office: selectedOffice || (portal === 'internal' ? OFFICES[0] : undefined),
+      });
+
+      login(signedInUser);
+      navigate(portal === 'external' ? '/efs' : '/internal');
+    } finally {
+      setIsSigningIn(false);
+      setAuthProvider(null);
+    }
   };
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -172,6 +187,22 @@ export default function LoginPage() {
                     </>
                   ) : (
                     <>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => void handleLoginSuccess('google')}
+                          disabled={!selectedRole || !email || isSigningIn}
+                        >
+                          {isSigningIn && authProvider === 'google' ? 'Connecting Google...' : 'Continue with Google'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => void handleLoginSuccess('login-gov')}
+                          disabled={!selectedRole || !email || isSigningIn}
+                        >
+                          {isSigningIn && authProvider === 'login-gov' ? 'Connecting Login.gov...' : 'Continue with Login.gov'}
+                        </Button>
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
                         <input
@@ -245,10 +276,12 @@ export default function LoginPage() {
                 <div className="pt-4 flex gap-4">
                   <Button
                     className="flex-1 bg-dol-blue text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleLoginSuccess}
-                    disabled={!selectedRole || !email}
+                    onClick={() => void handleLoginSuccess()}
+                    disabled={!selectedRole || !email || isSigningIn}
                   >
-                    {isInternal ? 'Sign In & Initialize Workstation' : 'Sign In'}
+                    {isInternal
+                      ? (isSigningIn && authProvider === 'dol-sso' ? 'Connecting DOL SSO...' : 'Sign In with DOL SSO')
+                      : 'Continue with selected provider'}
                   </Button>
                 </div>
 

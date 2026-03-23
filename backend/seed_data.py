@@ -5,23 +5,13 @@ Populates database with mock data from existing prototype
 Run with: python backend/seed_data.py
 """
 
-from sqlalchemy.orm import Session
-from datetime import datetime, date
+from datetime import date
 import models
 import database
 
 def seed_data():
     """Seed database with mock data"""
-    # Create new engine and session for seeding
-    from sqlalchemy.orm import sessionmaker
-    
-    # Use same database URL as main app
-    import os
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./iacp.db")
-    
-    engine = database.create_engine(DATABASE_URL)
-    SessionLocal = sessionmaker(bind=engine)
-    db = SessionLocal()
+    db = database.SessionLocal()
     
     try:
         # Check if already seeded
@@ -160,7 +150,7 @@ def seed_data():
             },
             {
                 "id": "user-clerk-1",
-                "person_id": None,
+                "person_id": "person-clerk-1",
                 "role": "docket_clerk",
                 "office": "Pittsburgh",
                 "google_oauth_id": "google-clerk-1"
@@ -182,6 +172,13 @@ def seed_data():
                 first_name="Michael",
                 last_name="Ross",
                 email="michael.ross@dol.gov"
+            ),
+            models.Person(
+                id="person-clerk-1",
+                person_type="individual",
+                first_name="Dana",
+                last_name="Clerk",
+                email="dana.clerk@dol.gov"
             )
         ]
         
@@ -375,6 +372,7 @@ def seed_data():
         print("   - GET /api/v1/intake/queue    (1 pending)")
         print("   - GET /api/v1/judges/suggest  (2 judges)")
         print("\n🌐 Open http://localhost:8000/docs")
+        print("\n💡 Seeded SQLite/local backend models with Phase 1 prototype data.")
         
     except Exception as e:
         db.rollback()

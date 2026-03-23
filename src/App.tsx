@@ -7,6 +7,7 @@ import LandingPage from './components/LandingPage';
 import EFSPortal from './components/EFSPortal';
 import IACPPortal from './components/IACPPortal';
 import Walkthrough from './components/Walkthrough';
+import PublicFilingWizard from './components/PublicFilingWizard';
 
 function ProtectedRoute({ children, portal }: { children: React.ReactNode; portal: 'external' | 'internal' }) {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/public-filing" element={<PublicFilingWizard />} />
           <Route path="/walkthrough" element={<Walkthrough />} />
           <Route
             path="/efs"

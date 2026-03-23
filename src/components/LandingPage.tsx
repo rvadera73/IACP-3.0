@@ -48,13 +48,25 @@ export default function LandingPage() {
                 A simplified, accessible portal for Claimants, Attorneys, and Operators to
                 submit new cases, file evidence, and track status with AI-powered guidance.
               </p>
-              <Button
-                variant="outline"
-                className="w-full justify-between group-hover:bg-dol-blue group-hover:text-white"
-                aria-label="Enter Unified Filing Service"
-              >
-                Access UFS Portal <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              <div className="mt-auto space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between group-hover:bg-dol-blue group-hover:text-white"
+                  aria-label="Enter Unified Filing Service"
+                >
+                  Access UFS Portal <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                <Button
+                  className="w-full justify-between"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/public-filing');
+                  }}
+                  aria-label="Start public filing wizard"
+                >
+                  Start Public Filing <FilePlus className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
             </div>
           </Card>
         </motion.div>

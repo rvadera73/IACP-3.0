@@ -31,7 +31,7 @@ type FilingCategory = 'Adjudication' | 'Appeal';
 
 export default function NewCaseForm({ onCancel, onSubmit }: NewCaseFormProps) {
   const { user } = useAuth();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>('type-selection');
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [category, setCategory] = useState<FilingCategory>('Adjudication');
   const [caseType, setCaseType] = useState<CaseType | AppealType>('BLA');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -494,13 +494,12 @@ export default function NewCaseForm({ onCancel, onSubmit }: NewCaseFormProps) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">
-                Step {step === 'type-selection' ? 1 : step === 2 ? 2 : 3} of 3
+                Step {step} of 3
               </span>
               <Badge variant="info" size="sm">{category}</Badge>
             </div>
             <h2 className="text-2xl font-bold text-slate-900">
-              {step === 'type-selection' ? 'Select Case Type' : 
-               step === 2 ? 'Case Information' : 'Review & Submit'}
+              {step === 1 ? 'Select Case Type' : step === 2 ? 'Case Information' : 'Review & Submit'}
             </h2>
           </div>
         </div>
@@ -531,7 +530,7 @@ export default function NewCaseForm({ onCancel, onSubmit }: NewCaseFormProps) {
 
       {/* Content */}
       <Card className="p-6">
-        {step === 'type-selection' && renderTypeSelection()}
+        {step === 1 && renderTypeSelection()}
         {step === 2 && renderFormFields()}
         {step === 3 && (
           <div className="space-y-6">
