@@ -34,6 +34,10 @@ import CaseRecord, { CaseRecordData } from './oalj/CaseRecord';
 import NotificationsPanel, { Notification } from './oalj/NotificationsPanel';
 import CaseIntelligenceHub from './oalj/CaseIntelligenceHub';
 import { getCaseRecord, MOCK_CASE_FOLDERS, MOCK_NOTIFICATIONS } from '../data/mockDashboardData';
+import { useCreateFiling, useFilings } from '../hooks/useFilings';
+import { formatFilingSummary } from '../services/api';
+import { Spinner } from './UI/Spinner';
+import { ErrorToast } from './UI/ErrorToast';
 
 export default function EFSPortal() {
   const { user, logout } = useAuth();
@@ -53,12 +57,14 @@ export default function EFSPortal() {
   const [selectedMyCase, setSelectedMyCase] = useState<string | null>(null);
   const [selectedCaseForViewer, setSelectedCaseForViewer] = useState<string | null>(null);
 
-  // Filings tracking
-  const [filings, setFilings] = useState<any[]>([
-    { id: 'INT-2024-001', type: 'New Claim', status: 'Accepted', date: '2024-02-20', caseNo: '2024-BLA-00042' },
-    { id: 'INT-2024-005', type: 'Evidence Submission', status: 'Pending', date: '2024-02-24', caseNo: '2024-BLA-00042' },
-    { id: 'INT-2024-008', type: 'Motion to Compel', status: 'Accepted', date: '2024-02-25', caseNo: '2024-LHC-00128' },
-  ]);
+  const {
+    data: filingsData = [],
+    isLoading: isFilingsLoading,
+    error: filingsError,
+    refetch: refetchFilings,
+  } = useFilings();
+  const createFilingMutation = useCreateFiling();
+  const [dismissedFilingError, setDismissedFilingError] = useState(false);
 
   const [accessRequests, setAccessRequests] = useState<any[]>([
     { id: 'REQ-001', caseNumber: '2024-BLA-00042', requestedAt: '2024-02-25', status: 'Approved', reason: 'Retained as Counsel' },
@@ -107,6 +113,9 @@ export default function EFSPortal() {
   });
 
   const isAttorney = user?.role?.includes('Attorney') || true;
+  const filings = filingsData.map(formatFilingSummary);
+  const filingMutationError = createFilingMutation.error;
+  const isSubmittingFiling = createFilingMutation.isPending;
 
   // Handle case click from folder gallery - opens Case Intelligence Hub
   const handleSelectCase = (caseId: string) => {
@@ -212,38 +221,41 @@ export default function EFSPortal() {
   };
 
   // Submit filing
-  const handleSubmitFiling = () => {
-    setIsSubmitting(true);
-    
-    setTimeout(() => {
-      const year = new Date().getFullYear();
-      const seq = String(filings.length + 1).padStart(5, '0');
-      let caseNo = '';
+  const handleSubmitFiling = async () => {
+    const year = new Date().getFullYear();
+    const seq = String(filings.length + 1).padStart(5, '0');
+    let filingTypeLabel = filingType;
 
-      if (filingType === 'New Appeal') {
-        const prefix = APPEAL_TYPES[formData.appealBoard as AppealType]?.prefix || 'BRB No.';
-        caseNo = `${prefix} ${String(year).slice(-2)}-${seq} ${selectedCaseType}`;
-      } else if (preselectedCaseForFiling) {
-        caseNo = preselectedCaseForFiling.docketNumber;
-      } else {
-        caseNo = `${year}-${selectedCaseType}-${seq}`;
-      }
+    if (filingType === 'New Appeal') {
+      const prefix = APPEAL_TYPES[formData.appealBoard as AppealType]?.prefix || 'BRB No.';
+      filingTypeLabel = `${filingType} (${prefix} ${String(year).slice(-2)}-${seq} ${selectedCaseType})`;
+    } else if (preselectedCaseForFiling) {
+      filingTypeLabel = `${filingType} - ${preselectedCaseForFiling.docketNumber}`;
+    }
 
-      const newFiling = {
-        id: `INT-${year}-${seq}`,
-        type: filingType,
-        status: 'Pending',
-        date: new Date().toISOString().split('T')[0],
-        caseNo: caseNo
-      };
+    try {
+      await createFilingMutation.mutateAsync({
+        intake_id: `INT-${year}-${seq}`,
+        filing_type: filingTypeLabel,
+        submitted_by: user?.name || 'Portal user',
+        description: [
+          `Claimant: ${formData.claimantName || 'Unknown'}`,
+          `Employer: ${formData.employerName || 'Not provided'}`,
+          `Case type: ${selectedCaseType}`,
+          `Description: ${formData.description || 'No description provided'}`,
+          selectedFile ? `Document: ${selectedFile.name}` : undefined,
+        ].filter(Boolean).join('. '),
+        ai_score: aiFeedback ? 95 : 0,
+      });
 
-      setFilings([newFiling, ...filings]);
-      setIsSubmitting(false);
       setAiFeedback(null);
       setSelectedFile(null);
       setShowConfirmDialog(false);
       setView('my-cases');
-    }, 1500);
+      setDismissedFilingError(false);
+    } catch (error) {
+      console.error('Filing submission failed:', error);
+    }
   };
 
   // Access request search
@@ -364,6 +376,17 @@ export default function EFSPortal() {
   const selectedCaseRecord = selectedMyCase ? getCaseRecord(selectedMyCase) : null;
 
   if (!user) return null;
+  if (isFilingsLoading && filings.length === 0) {
+    return <Spinner label="Loading filings..." />;
+  }
+
+  if (filingsError && filings.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <ErrorToast error={filingsError} onRetry={() => refetchFilings()} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -494,6 +517,26 @@ export default function EFSPortal() {
 
         {/* Content */}
         <main className="flex-grow overflow-y-auto p-8">
+          {!dismissedFilingError && filingMutationError && (
+            <div className="mb-6">
+              <ErrorToast
+                error={filingMutationError}
+                onRetry={handleSubmitFiling}
+                onDismiss={() => setDismissedFilingError(true)}
+              />
+            </div>
+          )}
+
+          {filingsError && (
+            <div className="mb-6">
+              <ErrorToast
+                error={filingsError}
+                onRetry={() => refetchFilings()}
+                onDismiss={() => setDismissedFilingError(true)}
+              />
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {/* My Cases - Folder-Centric Gallery (DEFAULT VIEW) */}
             {view === 'my-cases' && (
@@ -1213,11 +1256,11 @@ export default function EFSPortal() {
               </Button>
               <Button
                 onClick={handleSubmitFiling}
-                isLoading={isSubmitting}
+                isLoading={isSubmittingFiling}
                 className="flex-1"
                 leftIcon={<CheckCircle className="w-4 h-4" />}
               >
-                {isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
+                {isSubmittingFiling ? 'Submitting...' : 'Confirm & Submit'}
               </Button>
             </div>
           </div>

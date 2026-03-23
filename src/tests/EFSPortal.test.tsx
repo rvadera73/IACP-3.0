@@ -1,65 +1,113 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import EFSPortal from '../components/EFSPortal';
 
-// Mock the AI service
-vi.mock('../services/geminiService', () => ({
-  analyzeIntake: vi.fn(() => Promise.resolve('Mock AI analysis')),
-  analyzeAccessRequest: vi.fn(() => Promise.resolve('Mock AI validation')),
+const mockUseFilings = vi.fn();
+const mockUseCreateFiling = vi.fn();
+
+vi.mock('../hooks/useFilings', () => ({
+  useFilings: () => mockUseFilings(),
+  useCreateFiling: () => mockUseCreateFiling(),
 }));
 
-describe('EFSPortal - Core Functionality', () => {
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { name: 'Casey Attorney', role: 'Attorney' },
+    logout: vi.fn(),
+  }),
+}));
+
+vi.mock('../services/geminiService', () => ({
+  analyzeIntake: vi.fn(() => Promise.resolve('AI complete')),
+  analyzeAccessRequest: vi.fn(() => Promise.resolve('Access review complete')),
+}));
+
+vi.mock('../components/oalj/CasesGallery', () => ({
+  default: ({ cases }: { cases: Array<{ title: string }> }) => (
+    <div data-testid="cases-gallery">Cases: {cases.length}</div>
+  ),
+}));
+
+vi.mock('../components/oalj/CaseRecord', () => ({
+  default: () => <div data-testid="case-record">Case Record</div>,
+}));
+
+vi.mock('../components/oalj/NotificationsPanel', () => ({
+  default: () => <div data-testid="notifications-panel">Notifications</div>,
+}));
+
+vi.mock('../components/oalj/CaseIntelligenceHub', () => ({
+  default: () => <div data-testid="case-intelligence-hub">Case Intelligence Hub</div>,
+}));
+
+function renderPortal() {
+  return render(
+    <MemoryRouter>
+      <EFSPortal />
+    </MemoryRouter>
+  );
+}
+
+describe('EFSPortal', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('File Upload', () => {
-    it('should have file upload functionality configured correctly', () => {
-      // This test verifies the test infrastructure is working
-      expect(true).toBe(true);
+    mockUseCreateFiling.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+      error: null,
     });
 
-    it('should accept PDF, DOC, and DOCX files', () => {
-      const acceptedTypes = ['.pdf', '.doc', '.docx'];
-      expect(acceptedTypes).toContain('.pdf');
-      expect(acceptedTypes).toContain('.doc');
-      expect(acceptedTypes).toContain('.docx');
-    });
-  });
-
-  describe('AI Validation', () => {
-    it('should call analyzeIntake with correct parameters', async () => {
-      const { analyzeIntake } = await import('../services/geminiService');
-      
-      const result = await analyzeIntake(
-        'Test details',
-        'New Case Filing',
-        'Attorney'
-      );
-      
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
-    });
-
-    it('should handle AI service errors gracefully', async () => {
-      const { analyzeIntake } = await import('../services/geminiService');
-      
-      const result = await analyzeIntake('', '', '');
-      
-      expect(result).toBeDefined();
+    mockUseFilings.mockReturnValue({
+      data: [
+        {
+          id: '1',
+          intakeId: 'INT-2026-00001',
+          type: 'New Case Filing',
+          status: 'pending',
+          submittedAt: '2026-03-21T10:00:00Z',
+          submittedBy: 'Casey Attorney',
+          description: 'Claimant: Robert Martinez. Employer: Apex Coal Mining.',
+        },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
     });
   });
 
-  describe('Case Types', () => {
-    it('should support BLA, LHC, PER for OALJ filings', () => {
-      const oaljCaseTypes = ['BLA', 'LHC', 'PER'];
-      expect(oaljCaseTypes).toHaveLength(3);
-      expect(oaljCaseTypes).toContain('BLA');
-      expect(oaljCaseTypes).toContain('LHC');
-      expect(oaljCaseTypes).toContain('PER');
+  it('shows a loading spinner while filings load', () => {
+    mockUseFilings.mockReturnValue({
+      data: [],
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
     });
 
-    it('should support BRB, ARB, ECAB for appeals', () => {
-      const appealTypes = ['BRB', 'ARB', 'ECAB'];
-      expect(appealTypes).toHaveLength(3);
+    renderPortal();
+
+    expect(screen.getByText(/loading filings/i)).toBeInTheDocument();
+  });
+
+  it('shows an api error toast when filings fail to load', () => {
+    mockUseFilings.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: new Error('Failed to fetch filings'),
+      refetch: vi.fn(),
     });
+
+    renderPortal();
+
+    expect(screen.getByText(/we hit an api error/i)).toBeInTheDocument();
+    expect(screen.getByText(/failed to fetch filings/i)).toBeInTheDocument();
+  });
+
+  it('renders live filing totals from the filings hook', () => {
+    renderPortal();
+
+    expect(screen.getByRole('heading', { name: 'My Cases' })).toBeInTheDocument();
+    expect(screen.getByText(/total filings/i)).toBeInTheDocument();
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
   });
 });

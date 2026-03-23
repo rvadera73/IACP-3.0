@@ -22,33 +22,24 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Button } from '../UI';
 import ActionMenu, { ActionItems } from '../UI/ActionMenu';
-import { autoDocketFiling, generateDeficiencyNotice } from '../../services/autoDocketing';
-import { getSuggestedJudges, type Judge } from '../../services/smartAssignment';
 import CaseIntelligenceHub from '../oalj/CaseIntelligenceHub';
 import CasesGallery from '../oalj/CasesGallery';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import { MOCK_CASE_FOLDERS } from '../../data/mockDashboardData';
 import { useAuth } from '../../context/AuthContext';
+import { useAssignJudge, useAutoDocket, useIntakeQueue, useJudgeSuggestions } from '../../hooks/useFilings';
+import { Spinner } from '../UI/Spinner';
+import { ErrorToast } from '../UI/ErrorToast';
+import { Skeleton } from '../UI/Skeleton';
+import type { IntakeQueueItem } from '../../services/api';
 
 interface DocketClerkDashboardProps {
   onCaseSelect: (caseId: string) => void;
 }
 
-interface Filing {
-  id: string;
-  channel: string;
-  caseType: string;
-  claimant: string;
-  employer: string;
-  receivedAt: string;
+type Filing = Omit<IntakeQueueItem, 'queueStatus'> & {
   status: 'Auto-Docket Ready' | 'Manual Review' | 'Processing' | 'Deficiency Notice Sent' | 'Docketed';
-  deficiencies: string[];
-  aiScore: number;
-  documents: any[];
-  deficiencySentAt?: string;
-  docketNumber?: string;
-  docketedAt?: string;
-}
+};
 
 export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashboardProps) {
   const { user } = useAuth();
@@ -60,105 +51,24 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
   const [searchQuery, setSearchQuery] = useState('');
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedForAssignment, setSelectedForAssignment] = useState<any | null>(null);
-  const [suggestedJudges, setSuggestedJudges] = useState<any[]>([]);
+  const [localQueueUpdates, setLocalQueueUpdates] = useState<Record<string, Partial<Filing>>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  const {
+    data: intakeQueue = [],
+    isLoading,
+    error,
+    refetch,
+  } = useIntakeQueue();
+  const autoDocketMutation = useAutoDocket();
+  const assignJudgeMutation = useAssignJudge();
+  const { data: suggestedJudges = [], isLoading: isLoadingSuggestions } = useJudgeSuggestions(selectedForAssignment?.caseType);
 
-  // State for filings - LIFECYCLE ALIGNED
-  const [filings, setFilings] = useState<Filing[]>([
-    // AUTO-DOCKET READY - Clean filing, no deficiencies
-    {
-      id: 'INT-2026-00089',
-      channel: 'UFS',
-      caseType: 'BLA',
-      claimant: 'Robert Martinez',
-      employer: 'Apex Coal Mining',
-      receivedAt: '2026-03-11 09:23 AM',
-      status: 'Auto-Docket Ready',
-      deficiencies: [],
-      aiScore: 98,
-      documents: [{ name: 'LS-203.pdf', pages: 4 }],
-    },
-    // MANUAL REVIEW - Has deficiencies, needs clerk review
-    {
-      id: 'INT-2026-00090',
-      channel: 'Email',
-      caseType: 'LHC',
-      claimant: 'Sarah Chen',
-      employer: 'Pacific Stevedoring',
-      receivedAt: '2026-03-11 08:45 AM',
-      status: 'Manual Review',
-      deficiencies: ['Missing Signature', 'Illegible SSN'],
-      aiScore: 65,
-      documents: [{ name: 'scan_20260311.pdf', pages: 3 }],
-    },
-    // PROCESSING - Being processed by system
-    {
-      id: 'INT-2026-00091',
-      channel: 'Paper',
-      caseType: 'PER',
-      claimant: 'TechCorp Industries',
-      employer: 'N/A',
-      receivedAt: '2026-03-10 04:15 PM',
-      status: 'Processing',
-      deficiencies: [],
-      aiScore: 88,
-      documents: [{ name: 'BALCA_Appeal.pdf', pages: 12 }],
-    },
-    // DEFICIENCY SENT - Waiting for filer response
-    {
-      id: 'INT-2026-00092',
-      channel: 'UFS',
-      caseType: 'BLA',
-      claimant: 'James Wilson',
-      employer: 'Eastern Coal Co.',
-      receivedAt: '2026-03-10 02:30 PM',
-      status: 'Deficiency Notice Sent',
-      deficiencies: ['Missing Employer EIN'],
-      aiScore: 72,
-      documents: [{ name: 'Claim_Form.pdf', pages: 5 }],
-      deficiencySentAt: '2026-03-10 03:00 PM',
-    },
-    // DOCKETED - Ready for judge assignment (NO HEARINGS YET - not assigned)
-    {
-      id: 'INT-2026-00085',
-      channel: 'UFS',
-      caseType: 'BLA',
-      claimant: 'Estate of R. Kowalski',
-      employer: 'Pittsburgh Coal Co.',
-      receivedAt: '2026-03-05 10:00 AM',
-      status: 'Docketed',
-      deficiencies: [],
-      aiScore: 95,
-      documents: [{ name: 'LS-203.pdf', pages: 4 }],
-      docketNumber: '2026-BLA-00085',
-      docketedAt: '2026-03-05 11:30 AM',
-    },
-    // DOCKETED & ASSIGNED - Has judge but no hearings yet
-    {
-      id: 'INT-2026-00080',
-      channel: 'UFS',
-      caseType: 'LHC',
-      claimant: 'Maria Santos',
-      employer: 'Atlantic Dockworkers',
-      receivedAt: '2026-02-28 11:00 AM',
-      status: 'Docketed',
-      deficiencies: [],
-      aiScore: 96,
-      documents: [{ name: 'LS-203.pdf', pages: 4 }],
-      docketNumber: '2026-LHC-00080',
-      docketedAt: '2026-02-28 11:45 AM',
-      assignedJudge: 'Hon. Michael Ross',
-      assignedAt: '2026-03-01 09:00 AM',
-    },
-  ]);
-
-  const [judges] = useState<Judge[]>([
-    { id: 'J001', name: 'Hon. Sarah Jenkins', office: 'Pittsburgh, PA', activeCases: 24, weightedLoad: 58, capacity: 75, specialty: ['BLA', 'LHC'], compliance270: 96, pendingDecisions: 5 },
-    { id: 'J002', name: 'Hon. Michael Ross', office: 'New York, NY', activeCases: 18, weightedLoad: 42, capacity: 75, specialty: ['LHC', 'PER'], compliance270: 100, pendingDecisions: 3 },
-    { id: 'J003', name: 'Hon. Patricia Chen', office: 'San Francisco, CA', activeCases: 32, weightedLoad: 78, capacity: 75, specialty: ['BLA'], compliance270: 88, pendingDecisions: 8 },
-    { id: 'J004', name: 'Hon. James Wilson', office: 'Washington, DC', activeCases: 12, weightedLoad: 28, capacity: 75, specialty: ['PER', 'WB'], compliance270: 100, pendingDecisions: 2 },
-  ]);
+  const filings: Filing[] = intakeQueue.map((item) => ({
+    ...item,
+    status: item.queueStatus,
+    ...localQueueUpdates[item.id],
+  }));
 
   const stats = {
     totalIntake: filings.length,
@@ -183,41 +93,25 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
     if (!item) return;
     
     setIsProcessing(true);
-    setProcessingMessage('Running AI validation...');
-    
-    const filingData = {
-      claimantName: item.claimant,
-      employerName: item.employer,
-      ssn: '***-**-4567',
-      dateOfBirth: '1970-01-15',
-      dateOfInjury: '2025-12-15',
-      signature: 'Signed',
-    };
+    setProcessingMessage('Submitting docket request to the API...');
     
     try {
-      const result = await autoDocketFiling(filingData, item.caseType, 'Sample document text');
-      
-      if (result.success) {
-        // UPDATE STATE - Mark as docketed
-        setFilings(filings.map(f => 
-          f.id === intakeId 
-            ? { ...f, status: 'Docketed' as const, docketNumber: result.docketNumber, docketedAt: new Date().toLocaleString() }
-            : f
-        ));
-        
-        setProcessingMessage(`✅ Successfully docketed as ${result.docketNumber}`);
-        setTimeout(() => {
-          setIsProcessing(false);
-          setProcessingMessage('');
-          alert(`✅ Case ${result.docketNumber} has been docketed.\n\nNext step: Assign to judge`);
-        }, 2000);
-      } else {
-        setProcessingMessage(`⚠️ ${result.message}`);
-        setTimeout(() => {
-          setIsProcessing(false);
-          setProcessingMessage('');
-        }, 3000);
-      }
+      const result = await autoDocketMutation.mutateAsync(intakeId);
+
+      setLocalQueueUpdates((prev) => ({
+        ...prev,
+        [intakeId]: {
+          status: 'Docketed',
+          docketNumber: result.docket_number,
+          docketedAt: new Date().toLocaleString(),
+        },
+      }));
+
+      setProcessingMessage(`Successfully docketed as ${result.docket_number}`);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setProcessingMessage('');
+      }, 1200);
     } catch (error) {
       console.error('Auto-docketing error:', error);
       setIsProcessing(false);
@@ -228,28 +122,13 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
     const item = filings.find(f => f.id === intakeId);
     if (!item) return;
     
-    const notice = generateDeficiencyNotice(
-      { claimantName: item.claimant },
-      item.deficiencies.map((d) => ({
-        id: '1',
-        type: 'Missing Required Field' as const,
-        field: d,
-        description: d,
-        severity: 'Critical' as const,
-        autoFixable: false,
-      })),
-      item.claimant
-    );
-    
-    // UPDATE STATE - Mark deficiency sent
-    setFilings(filings.map(f =>
-      f.id === intakeId
-        ? { ...f, status: 'Deficiency Notice Sent' as const, deficiencySentAt: new Date().toLocaleString() }
-        : f
-    ));
-    
-    console.log('Deficiency Notice:', notice);
-    alert('✅ Deficiency notice generated and sent to filer.\n\nFiler has 14 days to respond.');
+    setLocalQueueUpdates((prev) => ({
+      ...prev,
+      [intakeId]: {
+        status: 'Deficiency Notice Sent',
+        deficiencySentAt: new Date().toLocaleString(),
+      },
+    }));
   };
 
   const handleAssignToJudge = (intakeId: string) => {
@@ -257,19 +136,27 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
     if (!item) return;
     
     setSelectedForAssignment(item);
-    const suggestions = getSuggestedJudges(judges, {
-      caseType: item.caseType as 'BLA' | 'LHC' | 'PER',
-      office: 'Pittsburgh, PA',
-    });
-    setSuggestedJudges(suggestions);
     setShowAssignmentModal(true);
   };
 
-  const handleConfirmAssignment = (judgeId: string) => {
-    const judge = judges.find(j => j.id === judgeId);
+  const handleConfirmAssignment = async (judgeId: string) => {
+    const judge = suggestedJudges.find((suggestion) => suggestion.judge_id === judgeId);
     if (!judge || !selectedForAssignment) return;
-    
-    alert(`✅ Case assigned to ${judge.name}\n\nLoad Score: ${judge.weightedLoad}/${judge.capacity}\nSpecialty: ${judge.specialty.join(', ')}\n270-Day Compliance: ${judge.compliance270}%`);
+
+    await assignJudgeMutation.mutateAsync({
+      filingId: selectedForAssignment.id,
+      judgeId,
+      judgeName: judge.name,
+    });
+
+    setLocalQueueUpdates((prev) => ({
+      ...prev,
+      [selectedForAssignment.id]: {
+        assignedJudge: judge.name,
+        assignedAt: new Date().toLocaleString(),
+      },
+    }));
+
     setShowAssignmentModal(false);
     setSelectedForAssignment(null);
   };
@@ -285,6 +172,14 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
         !item.claimant.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+
+  if (isLoading) {
+    return <Spinner label="Loading intake queue..." />;
+  }
+
+  if (error) {
+    return <ErrorToast error={error} onRetry={() => refetch()} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -488,6 +383,13 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
+                  {filteredQueue.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-10">
+                        <div className="text-center text-sm text-slate-500">No intake items match the current filters.</div>
+                      </td>
+                    </tr>
+                  )}
                   {filteredQueue.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
@@ -671,22 +573,22 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
 
               {suggestedJudges.map((suggestion, idx) => (
                 <div
-                  key={suggestion.judge.id}
+                  key={suggestion.judge_id}
                   className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                     idx === 0 ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-blue-300'
                   }`}
-                  onClick={() => handleConfirmAssignment(suggestion.judge.id)}
+                  onClick={() => handleConfirmAssignment(suggestion.judge_id)}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                         idx === 0 ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'
                       }`}>
-                        {suggestion.rank}
+                        {idx + 1}
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-slate-900">{suggestion.judge.name}</div>
-                        <div className="text-xs text-slate-500">{suggestion.judge.office}</div>
+                        <div className="text-sm font-bold text-slate-900">{suggestion.name}</div>
+                        <div className="text-xs text-slate-500">{suggestion.office}</div>
                       </div>
                     </div>
                     {idx === 0 && (
@@ -696,38 +598,43 @@ export default function DocketClerkDashboard({ onCaseSelect }: DocketClerkDashbo
 
                   <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
                     <div>
-                      <div className="text-xs text-slate-500">Workload</div>
-                      <div className="font-bold text-slate-900">{suggestion.judge.weightedLoad}/{suggestion.judge.capacity}</div>
+                      <div className="text-xs text-slate-500">Match Score</div>
+                      <div className="font-bold text-slate-900">{suggestion.score}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-500">Specialty</div>
-                      <div className="font-bold text-slate-900">{suggestion.judge.specialty.join(', ')}</div>
+                      <div className="text-xs text-slate-500">Case Type</div>
+                      <div className="font-bold text-slate-900">{selectedForAssignment.caseType}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-500">270-Day</div>
-                      <div className={`font-bold ${
-                        suggestion.judge.compliance270 >= 95 ? 'text-emerald-600' :
-                        suggestion.judge.compliance270 >= 85 ? 'text-amber-600' : 'text-red-600'
-                      }`}>
-                        {suggestion.judge.compliance270}%
-                      </div>
+                      <div className="text-xs text-slate-500">Office</div>
+                      <div className="font-bold text-slate-900">{suggestion.office}</div>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {suggestion.reasons.map((reason: string, rIdx: number) => (
-                      <Badge key={rIdx} variant="neutral" size="sm">{reason}</Badge>
-                    ))}
+                    <Badge variant="neutral" size="sm">Suggested by API</Badge>
+                    <Badge variant="neutral" size="sm">Score {suggestion.score}</Badge>
                   </div>
                 </div>
               ))}
+
+              {isLoadingSuggestions && (
+                <div className="space-y-3">
+                  <Skeleton className="h-28 w-full" />
+                  <Skeleton className="h-28 w-full" />
+                </div>
+              )}
             </div>
 
             <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowAssignmentModal(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => handleConfirmAssignment(suggestedJudges[0]?.judge.id)}>
+              <Button
+                onClick={() => handleConfirmAssignment(suggestedJudges[0]?.judge_id)}
+                isLoading={assignJudgeMutation.isPending}
+                disabled={!suggestedJudges[0]}
+              >
                 Assign to Recommended Judge
               </Button>
             </div>

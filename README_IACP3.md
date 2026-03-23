@@ -44,7 +44,8 @@ IACP 3.0 is a unified web-based electronic filing and case management system for
 | Document | Purpose |
 |----------|---------|
 | [`PRD.md`](PRD.md) | Original PRD (superseded by docs/USER_STORIES.md) |
-| [`DATA_MODEL_IACP3.md`](DATA_MODEL_IACP3.md) | Transitional data model (superseded by docs/DATA_MODEL.md) |
+
+> **Note:** `DATA_MODEL.md`, `DATA_MODEL_IACP3.md`, and `DATA_MODEL_VALIDATION.md` were removed (Sprint 1). Canonical data model: [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md)
 
 ---
 
