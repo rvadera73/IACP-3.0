@@ -1,150 +1,128 @@
-# IACP 3.0 - Sprint 0 Tasks
+# IACP 3.0 — TODO
 
-**Current Sprint:** Sprint 0 (Foundation Week)  
-**Date Started:** March 22, 2026  
-**Status:** IN PROGRESS
-
----
-
-## 🎯 Sprint Goal
-
-Connect existing prototype screens to real backend and deploy to Cloud Run.
+> **Purpose**: Shared task tracker for all agents (Qwen, Aider, Codex, Copilot, Claude Sonnet, Claude Opus).
+> Agents MUST read this file at the start of each session and update it after completing or adding tasks.
+> Last updated: 2026-03-23
 
 ---
 
-## ✅ Completed Tasks
+## Current Sprint: Sprint 1 — Foundation Fixes + Public E-Filing Part 1
 
-### Day 2 (March 23) - SPRINT 0 COMPLETE! 🎉
+**Sprint Goal:** Fix data model, set up modular backend, implement Google OAuth, and build the public filing wizard (steps 1-3).
 
-- [x] Aider: Created FastAPI backend structure ✅
-- [x] Qwen Code: Created database.py with PostgreSQL setup ✅
-- [x] Qwen Code: Created models.py with all SQLAlchemy models ✅
-- [x] Qwen Code: Created main.py with all API endpoints ✅
-- [x] Qwen CLI: Create React Query hooks ✅
-- [x] Qwen Code: Update EFSPortal to use real API (ready to connect) ✅
-- [x] Commit and push all changes ✅
+**Sprint Dates:** March 23 – March 30, 2026
+**GitHub Issues:** https://github.com/rvadera73/IACP-3.0/issues
 
 ---
 
-## 🔄 In Progress
+## P0 — Must Complete (Blocks Sprint Goal)
 
-### Day 2 (March 23)
+### Codex (DB Fixes + Cleanup + Seed Data)
 
-- [ ] Aider: Add database connection (PostgreSQL)
-- [ ] Aider: Add Case model from schema.sql
-- [x] Qwen CLI: Create React Query hooks ✅
-- [ ] Qwen CLI: Update EFSPortal to use real API
-- [x] Commit and push all changes
+| # | Issue | Task | Status |
+|---|-------|------|--------|
+| 1 | [#1](https://github.com/rvadera73/IACP-3.0/issues/1) | Fix UUID primary keys in backend models | Pending |
+| 2 | [#2](https://github.com/rvadera73/IACP-3.0/issues/2) | Delete legacy data model files, update references | Pending |
+| 3 | [#3](https://github.com/rvadera73/IACP-3.0/issues/3) | Add Pydantic request/response schemas | Pending |
+| 4 | [#4](https://github.com/rvadera73/IACP-3.0/issues/4) | Generate comprehensive seed_data.sql from prototype mock data | Pending |
 
----
+### Aider (Backend Infrastructure)
 
-## 📋 Pending Tasks
+| # | Issue | Task | Status |
+|---|-------|------|--------|
+| 5 | [#5](https://github.com/rvadera73/IACP-3.0/issues/5) | Set up Alembic + initial migration | Pending |
+| 7 | [#7](https://github.com/rvadera73/IACP-3.0/issues/7) | Implement Google OAuth 2.0 backend | Pending |
 
-### Backend (Aider)
+### Qwen (Backend Refactor + Frontend)
 
-- [ ] Database connection setup
-- [ ] All 9 schemas from schema.sql
-- [ ] CRUD operations for each model
-- [ ] Google OAuth 2.0 endpoint
-- [ ] AI streaming endpoint (SSE)
-- [ ] Email service integration
+| # | Issue | Task | Status |
+|---|-------|------|--------|
+| 6 | [#6](https://github.com/rvadera73/IACP-3.0/issues/6) | Refactor backend to modular monolith | Pending |
+| 8 | [#8](https://github.com/rvadera73/IACP-3.0/issues/8) | Set up PyCasbin RBAC | Pending |
+| 9 | [#9](https://github.com/rvadera73/IACP-3.0/issues/9) | Public Portal: Landing page | Pending |
+| 10 | [#10](https://github.com/rvadera73/IACP-3.0/issues/10) | Public Portal: Google OAuth frontend | Pending |
+| 17 | [#17](https://github.com/rvadera73/IACP-3.0/issues/17) | React Query + API client setup | Pending |
 
-### Frontend (Qwen CLI)
+### Copilot (DevOps)
 
-- [ ] React Query hooks (`src/hooks/`)
-- [ ] Update EFSPortal.tsx
-- [ ] Update DocketClerkDashboard.tsx
-- [ ] Add loading states
-- [ ] Add error handling
-
-### Testing (Both)
-
-- [ ] Unit tests for backend
-- [ ] Component tests for frontend
-- [ ] Integration tests
-- [ ] E2E tests
-
-### Deployment
-
-- [ ] Dockerfile updates
-- [ ] Cloud Run configuration
-- [ ] Environment variables
-- [ ] Deploy to staging
+| # | Issue | Task | Status |
+|---|-------|------|--------|
+| 13 | [#13](https://github.com/rvadera73/IACP-3.0/issues/13) | Docker Compose for local dev | Pending |
 
 ---
 
-## 📝 Today's Instructions for Agents
+## P1 — Should Complete
 
-### For Aider (Backend)
+### Qwen (Frontend)
 
-**Read context from files, not prompts:**
-1. Read `database/schema.sql` for models
-2. Read `docs/EXISTING_COMPONENTS_INVENTORY.md` for what exists
-3. Read `src/services/api.ts` for expected endpoints
+| # | Issue | Task | Status |
+|---|-------|------|--------|
+| 11 | [#11](https://github.com/rvadera73/IACP-3.0/issues/11) | Filing type selection wizard | Pending |
+| 16 | [#16](https://github.com/rvadera73/IACP-3.0/issues/16) | Shared UI component library | Pending |
 
-**Tasks:**
-```bash
-# Task 1: Database setup
-# Context: database/schema.sql
-aider --message "See database/schema.sql - create SQLAlchemy models for core schema"
+### Aider (Backend)
 
-# Task 2: Add CRUD
-# Context: backend/models.py  
-aider --message "Add CRUD operations to existing models"
+| # | Issue | Task | Status |
+|---|-------|------|--------|
+| 12 | [#12](https://github.com/rvadera73/IACP-3.0/issues/12) | Filing API: CRUD endpoints | Pending |
+
+### Copilot (Testing + CI)
+
+| # | Issue | Task | Status |
+|---|-------|------|--------|
+| 14 | [#14](https://github.com/rvadera73/IACP-3.0/issues/14) | CI pipeline: lint + test on PR | Pending |
+| 15 | [#15](https://github.com/rvadera73/IACP-3.0/issues/15) | Unit tests for filing API + OAuth + RBAC | Pending |
+
+---
+
+## Dependency Graph
+
+```
+#1 (UUID fix) ──┐
+#2 (Doc cleanup) │
+#3 (Pydantic)  ──┤──→ #6 (Modular monolith) ──→ #7 (OAuth backend) ──→ #10 (OAuth frontend)
+#5 (Alembic)   ──┘                            ──→ #8 (RBAC)
+#4 (Seed data) ──→ #13 (Docker Compose)       ──→ #12 (Filing API) ──→ #11 (Filing wizard)
+                                               ──→ #17 (React Query) ──→ #9 (Landing page)
+                                                                     ──→ #16 (UI components)
+                   #14 (CI) ──→ #15 (Tests)
 ```
 
-### For Qwen CLI (Frontend)
-
-**Read context from files:**
-1. Read `src/services/api.ts` for API layer
-2. Read `docs/EXISTING_COMPONENTS_INVENTORY.md` for components
-3. Read `src/components/EFSPortal.tsx` for current implementation
-
-**Tasks:**
-```bash
-# Task 1: Create hooks
-# Context: src/services/api.ts
-qwen "See src/services/api.ts - create React Query hooks in src/hooks/" -y
-
-# Task 2: Update EFSPortal
-# Context: src/components/EFSPortal.tsx
-qwen "Update EFSPortal.tsx to use api.ts instead of mock data" -y
-```
+**Execution Order:**
+1. **Wave 1 (parallel):** #1, #2, #3, #4, #5 — Codex does fixes/cleanup, Aider does Alembic
+2. **Wave 2 (parallel):** #6, #13, #17, #16 — Qwen refactors backend, Copilot does Docker, Qwen starts frontend
+3. **Wave 3 (parallel):** #7, #8, #9, #14 — Aider does OAuth, Qwen does RBAC + landing page, Copilot does CI
+4. **Wave 4 (parallel):** #10, #11, #12, #15 — Frontend OAuth, wizard, filing API, tests
 
 ---
 
-## 🚫 What NOT to Do
+## Blocked
 
-1. ❌ Don't pass large context in prompts (rate limits)
-2. ❌ Don't recreate existing components
-3. ❌ Don't use Groq if Alibaba API is available
-4. ❌ Don't work in isolation - commit frequently
+_None currently._
 
 ---
 
-## ✅ What TO Do
+## Sprint 0 — Completed
 
-1. ✅ Read context from files (schema.sql, existing code)
-2. ✅ Enhance existing components
-3. ✅ Use configured API (check .aider.conf.yml)
-4. ✅ Commit after each task
-5. ✅ Update this todo.md as you work
-
----
-
-## 📞 Communication
-
-**When stuck:**
-1. Comment in this file
-2. Check existing docs first
-3. Ask other agent via file comments
-
-**When complete:**
-1. Update checklist above
-2. Git commit with clear message
-3. Push to main
+- [x] Aider: Created FastAPI backend structure
+- [x] Qwen: Created database.py, models.py, main.py
+- [x] Qwen: Created React Query hooks
+- [x] Qwen: Updated EFSPortal for real API
+- [x] All changes committed and pushed
 
 ---
 
-**Last Updated:** March 22, 2026  
-**Next Update:** End of Day 2
+## Agent Assignment Summary
+
+| Agent | Sprint 1 Issues | Focus |
+|-------|-----------------|-------|
+| **Codex** | #1, #2, #3, #4 | DB fixes, doc cleanup, seed data, Pydantic schemas |
+| **Aider** | #5, #7, #12 | Alembic, Google OAuth, Filing API |
+| **Qwen** | #6, #8, #9, #10, #11, #16, #17 | Backend refactor, RBAC, all frontend |
+| **Copilot** | #13, #14, #15 | Docker, CI, tests |
+| **Opus** | — | Architect, review, orchestrate |
+
+---
+
+**Last Updated:** 2026-03-23
+**Next Update:** After Wave 1 completes
