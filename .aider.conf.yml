@@ -1,10 +1,7 @@
 # Aider Configuration for IACP 3.0
 
-# Use Qwen API (Alibaba) instead of Groq
-# Get API key from: https://dashscope.console.aliyun.com/
-
-model: qwen-plus
-api-key: env:ALIBABA_API_KEY
+# Use Qwen API (Alibaba)
+model: qwen/qwen-plus
 
 # Auto-approve changes
 yes-always: true
@@ -17,10 +14,3 @@ map-tokens: 0
 
 # Enable caching
 cache-prompts: true
-
-# Read context from files
-read:
-  - todo.md
-  - database/schema.sql
-  - src/services/api.ts
-  - docs/EXISTING_COMPONENTS_INVENTORY.md
