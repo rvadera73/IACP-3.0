@@ -113,6 +113,8 @@
   - `database/seed_data.sql` now includes valid organization rows and all referenced internal users/offices.
 - Added public filing wizard/frontend auth work in progress on the React side.
 - Wave 2 frontend/API integration is complete for the current React surfaces; Wave 4 frontend work is partially complete through the public filing entry flow and demo sign-in UI.
+- Consolidated documentation entry points so `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, and `docs/DATA_MODEL.md` are the canonical design set; root PRD files now redirect instead of duplicating content.
+- Updated `README.md` and `START_HERE.md` to reflect the current project state and canonical documentation flow.
 
 ### Next Session Priorities
 

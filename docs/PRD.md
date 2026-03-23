@@ -3,7 +3,10 @@
 **Version:** 1.0 (Draft)
 **Agency:** Department of Labor (DOL) — Office of Administrative Law Judges (OALJ)
 **Date:** 2026-03-22
-**Status:** In Progress — Sections 1-3 complete, remaining sections pending
+**Status:** Canonical PRD for current repository planning
+
+> Canonical source: this file is the single maintained PRD for the repo.
+> Legacy root-level `PRD.md` and `PRD_IACP3.md` now redirect here and should not contain independent requirements content.
 
 ---
 
