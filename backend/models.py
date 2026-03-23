@@ -87,6 +87,7 @@ class DocketEvent(Base):
     event_type = Column(String, nullable=False)
     event_data = Column(Text)  # JSON string
     actor_id = Column(String)
+    actor_type = Column(String)  # system, internal_user, external_party
     occurred_at = Column(DateTime, default=datetime.utcnow)
     is_public = Column(Boolean, default=True)
     
