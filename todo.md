@@ -34,9 +34,9 @@ Connect existing prototype screens to real backend and deploy to Cloud Run.
 
 - [ ] Aider: Add database connection (PostgreSQL)
 - [ ] Aider: Add Case model from schema.sql
-- [ ] Qwen CLI: Create React Query hooks
+- [x] Qwen CLI: Create React Query hooks ✅
 - [ ] Qwen CLI: Update EFSPortal to use real API
-- [ ] Commit and push all changes
+- [x] Commit and push all changes
 
 ---
 
