@@ -1,0 +1,58 @@
+# IACP 3.0 RBAC Policy
+# Format: p, role, object, action
+
+# OALJ Docket Clerk
+p, docket_clerk, case, read
+p, docket_clerk, case, docket
+p, docket_clerk, case, assign
+p, docket_clerk, filing, read
+p, docket_clerk, filing, accept
+p, docket_clerk, judge, list
+
+# OALJ Legal Assistant
+p, legal_assistant, case, read
+p, legal_assistant, hearing, create
+p, legal_assistant, hearing, schedule
+p, legal_assistant, reporter, list
+
+# OALJ Attorney-Advisor
+p, attorney_advisor, case, read
+p, attorney_advisor, decision, draft
+p, attorney_advisor, decision, edit
+p, attorney_advisor, research, access
+
+# OALJ Judge (ALJ)
+p, alj, case, read
+p, alj, case, write
+p, alj, decision, draft
+p, alj, decision, sign
+p, alj, decision, seal
+p, alj, hearing, conduct
+p, alj, document, seal
+
+# Boards Docket Clerk
+p, board_docket_clerk, case, read
+p, board_docket_clerk, case, docket
+p, board_docket_clerk, appeal, process
+p, board_docket_clerk, record, transmit
+
+# Boards Legal Assistant
+p, board_legal_assistant, case, read
+p, board_legal_assistant, hearing, schedule
+p, board_legal_assistant, oral_argument, schedule
+
+# Boards Attorney-Advisor
+p, board_attorney_advisor, case, read
+p, board_attorney_advisor, brief, review
+p, board_attorney_advisor, memo, draft
+p, board_attorney_advisor, precedent, search
+
+# Boards Member
+p, board_member, case, read
+p, board_member, case, decide
+p, board_member, panel, review
+p, board_member, decision, sign
+p, board_member, dissent, write
+
+# Role assignments (will be populated dynamically)
+# g, user_id, role
