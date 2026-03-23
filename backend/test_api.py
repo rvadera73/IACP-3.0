@@ -4,7 +4,7 @@ Run with: python backend/test_api.py
 
 Prerequisites:
 1. Start backend: python backend/main.py
-2. Install requests: pip install requests
+2. Install requests: pip install -r backend/requirements.txt
 """
 
 import requests
@@ -124,8 +124,6 @@ def run_all_tests():
     print_section("IACP 3.0 - Sprint 0 API Tests")
     print("Starting backend API tests...\n")
     print("Make sure backend is running: python backend/main.py\n")
-    
-    input("Press Enter to start tests...")
     
     tests_passed = 0
     tests_failed = 0

@@ -6,7 +6,7 @@ Main entry point
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import models
 import database
@@ -42,6 +42,32 @@ def generate_intake_id() -> str:
     return f"INT-{datetime.utcnow().strftime('%Y%m%d-%H%M%S-%f')}"
 
 
+def current_fiscal_year(now: datetime | None = None) -> int:
+    reference = now or datetime.utcnow()
+    return reference.year + 1 if reference.month >= 10 else reference.year
+
+
+def generate_docket_number(db: Session, case_type: str, now: datetime | None = None) -> str:
+    reference = now or datetime.utcnow()
+    fiscal_year = current_fiscal_year(reference)
+    prefix = f"{fiscal_year}{case_type}"
+
+    latest_case = (
+        db.query(models.Case)
+        .filter(models.Case.docket_number.like(f"{prefix}%"))
+        .order_by(models.Case.docket_number.desc())
+        .first()
+    )
+
+    next_sequence = 1
+    if latest_case:
+        suffix = latest_case.docket_number[len(prefix):]
+        if suffix.isdigit():
+            next_sequence = int(suffix) + 1
+
+    return f"{prefix}{next_sequence:06d}"
+
+
 def infer_case_type(filing_type: str, description: str) -> str:
     source = f"{filing_type} {description}".upper()
     if "LHC" in source or "LONGSHORE" in source:
@@ -56,13 +82,19 @@ def infer_case_title(description: str) -> str:
     employer = "Unknown Employer"
 
     for segment in description.split("."):
-      normalized = segment.strip()
-      if normalized.lower().startswith("claimant:"):
-          claimant = normalized.split(":", 1)[1].strip() or claimant
-      if normalized.lower().startswith("employer:"):
-          employer = normalized.split(":", 1)[1].strip() or employer
+        normalized = segment.strip()
+        if normalized.lower().startswith("claimant:"):
+            claimant = normalized.split(":", 1)[1].strip() or claimant
+        if normalized.lower().startswith("employer:"):
+            employer = normalized.split(":", 1)[1].strip() or employer
 
     return f"{claimant} v. {employer}"
+
+
+def calculate_statutory_deadline(case_type: str, docketed_at: datetime) -> datetime | None:
+    if case_type == "BLA":
+        return docketed_at + timedelta(days=270)
+    return None
 
 
 def next_docket_event_sequence(db: Session, case_id: str) -> int:
@@ -127,16 +159,20 @@ async def auto_docket(filing_id: str, db: Session = Depends(database.get_db)):
     if not filing:
         raise HTTPException(status_code=404, detail="Filing not found")
 
-    docket_number = filing.intake_id.replace("INT", str(datetime.utcnow().year), 1)
+    docketed_at = datetime.utcnow()
+    case_type = infer_case_type(filing.filing_type, filing.description)
+    docket_number = generate_docket_number(db, case_type, docketed_at)
+    statutory_deadline = calculate_statutory_deadline(case_type, docketed_at)
 
     if not filing.case_id:
         case_record = models.Case(
             docket_number=docket_number,
-            case_type=infer_case_type(filing.filing_type, filing.description),
+            case_type=case_type,
             title=infer_case_title(filing.description),
-            current_phase="assignment",
-            current_status="docketed",
-            docketed_date=datetime.utcnow().date(),
+            current_phase="docketed",
+            current_status="awaiting_assignment",
+            docketed_date=docketed_at.date(),
+            statutory_deadline=statutory_deadline.date() if statutory_deadline else None,
             sla_status="green",
         )
         db.add(case_record)
@@ -145,9 +181,10 @@ async def auto_docket(filing_id: str, db: Session = Depends(database.get_db)):
     else:
         case_record = db.query(models.Case).filter(models.Case.id == filing.case_id).first()
         if case_record:
-            case_record.current_phase = "assignment"
-            case_record.current_status = "docketed"
-            case_record.docketed_date = datetime.utcnow().date()
+            case_record.current_phase = "docketed"
+            case_record.current_status = "awaiting_assignment"
+            case_record.docketed_date = docketed_at.date()
+            case_record.statutory_deadline = statutory_deadline.date() if statutory_deadline else None
 
     # Update filing status
     filing.status = "accepted"

@@ -75,6 +75,68 @@
 
 ---
 
+## Next Sprint: Sprint 2 — Infra, DevSecOps, and Operational Validation
+
+**Sprint Goal:** Make IACP deployable locally and to Cloud Run staging, with security gates and operational validation for the key user roles.
+
+**Sprint Focus Roles:**
+- Public Portal operational role: `Attorney`
+- Private Portal operational role: `OALJ Docket Clerk`
+
+### Sprint 2 Outcomes
+
+- Local environment starts reliably for frontend, backend, and database.
+- Cloud Run staging deployment works for the active frontend and backend paths.
+- CI/CD enforces build, test, and security checks before merge.
+- Secrets are managed outside the repo with no plaintext credential files in git history.
+- Two operational workflows are validated end-to-end:
+  - Attorney: New Case and New Filing submission from the public portal
+  - OALJ Docket Clerk: Intake queue review, docketing, and assignment workflow from the private portal
+
+### Sprint 2 Planned Work
+
+| Area | Issue | Task | Status |
+|---|---|---|---|
+| Infra | [#5](https://github.com/rvadera73/IACP-3.0/issues/5) | Set up Alembic + initial migration | Planned |
+| Infra | [#13](https://github.com/rvadera73/IACP-3.0/issues/13) | Docker Compose for local dev | Planned |
+| Backend | [#6](https://github.com/rvadera73/IACP-3.0/issues/6) | Refactor backend to modular monolith | Planned |
+| Backend | [#12](https://github.com/rvadera73/IACP-3.0/issues/12) | Filing API: CRUD endpoints | Planned |
+| Security | [#7](https://github.com/rvadera73/IACP-3.0/issues/7) | Implement Google OAuth 2.0 backend | Planned |
+| Security | [#8](https://github.com/rvadera73/IACP-3.0/issues/8) | Set up PyCasbin RBAC | Planned |
+| DevSecOps | [#14](https://github.com/rvadera73/IACP-3.0/issues/14) | CI pipeline: lint + test on PR | Planned |
+| DevSecOps | [#15](https://github.com/rvadera73/IACP-3.0/issues/15) | Unit tests for filing API + OAuth + RBAC | Planned |
+| Cleanup | [#2](https://github.com/rvadera73/IACP-3.0/issues/2) | Remove stale references and normalize active runtime paths | Planned |
+
+### Sprint 2 Acceptance Criteria
+
+1. Local deployment
+- `docker compose up` brings up the active app stack successfully.
+- Database setup is migration-driven and documented.
+- A new developer can follow one documented local setup path.
+
+2. Cloud Run staging
+- Backend deploys to Cloud Run staging successfully.
+- Frontend deploys to Cloud Run staging successfully.
+- Health checks pass in staging.
+- Staging secrets come from GitHub/GCP configuration, not local files in the repo.
+
+3. Public portal operational validation
+- An authenticated `Attorney` can submit a New Case from the public-facing portal.
+- An authenticated `Attorney` can submit a New Filing from the public-facing portal.
+- Submission creates/updates filing records in the backend and returns confirmation data.
+
+4. Private portal operational validation
+- An authenticated `OALJ Docket Clerk` can view the intake queue in the private portal.
+- The clerk can docket a pending filing successfully.
+- The clerk can complete the judge suggestion/assignment flow successfully, even if the final persistence path is still being closed.
+
+5. DevSecOps baseline
+- PR CI runs build, test, and lint.
+- Backend smoke test is runnable in CI or staging.
+- Secret handling and deployment docs are updated to match the active IACP 3.0 setup.
+
+---
+
 ## Dependency Graph
 
 ```
@@ -98,7 +160,7 @@
 
 ## Blocked
 
-- Local Python environment is missing `fastapi`, `sqlalchemy`, and `pydantic`, so backend runtime smoke tests cannot run until dependencies are installed.
+- No major blocker at the moment for the root backend prototype. Backend smoke testing now works using a repo-local Python package path.
 
 ---
 
@@ -115,13 +177,17 @@
 - Wave 2 frontend/API integration is complete for the current React surfaces; Wave 4 frontend work is partially complete through the public filing entry flow and demo sign-in UI.
 - Consolidated documentation entry points so `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, and `docs/DATA_MODEL.md` are the canonical design set; root PRD files now redirect instead of duplicating content.
 - Updated `README.md` and `START_HERE.md` to reflect the current project state and canonical documentation flow.
+- Added a reproducible backend dependency manifest at `backend/requirements.txt` and a non-interactive filing smoke test at `backend/smoke_test.py`.
+- Verified the root FastAPI filing flow end-to-end: create filing -> intake queue -> auto-docket -> case creation -> judge suggestions.
+- Fixed auto-docketing to generate Phase 1 docket numbers in `YYYYTTTNNNNNN` format and to set docketed/awaiting-assignment state plus BLA statutory deadlines.
 
 ### Next Session Priorities
 
-1. Install backend Python dependencies locally and run a true create → queue → docket smoke test.
-2. Finish issue `#2` by auditing remaining data-model/documentation references and normalizing any stale paths.
-3. Continue Phase 1 backend work on Alembic/modularization/OAuth backend once local runtime is verified.
-4. Expand Wave 4 from frontend scaffolding into backend-backed OAuth and filing API coverage.
+1. Finish issue `#2` by auditing remaining data-model/code references and normalizing any stale paths beyond the PRD/doc cleanup already completed.
+2. Continue Phase 1 backend work on Alembic/modularization/OAuth backend now that the filing smoke test is verified.
+3. Expand Wave 4 from frontend scaffolding into backend-backed OAuth and filing API coverage.
+4. Replace the temporary repo-local package bootstrap with a cleaner project-local Python environment setup if this root backend remains the active runtime path.
+5. Use Sprint 2 operational validation roles explicitly: `Attorney` for the public portal and `OALJ Docket Clerk` for the private portal.
 
 ---
 
@@ -148,4 +214,4 @@
 ---
 
 **Last Updated:** 2026-03-23
-**Next Update:** After backend smoke testing or Wave 4 backend progress
+**Next Update:** After Alembic/modular backend progress or additional issue `#2` cleanup
